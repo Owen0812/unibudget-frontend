@@ -86,7 +86,7 @@ export default function HealthScoreGauge({ score }) {
       </div>
 
       {/* Score breakdown legend */}
-      <div className="mt-6 flex justify-between px-2">
+      <div className="mt-6 flex flex-wrap justify-center gap-x-4 gap-y-2 px-2">
         {[
           { label: "Savings", color: "bg-emerald-500" },
           { label: "Expenses", color: "bg-indigo-500" },
