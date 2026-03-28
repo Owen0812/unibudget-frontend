@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import ScenarioSlider from "../components/ScenarioSlider";
 import SolvencyFanChart from "../components/SolvencyFanChart";
 import useDebounce from "../hooks/useDebounce";
+import HealthScoreGauge, { calculateHealthScore } from "../components/HealthScoreGauge";
 
 // ---------------------------------------------------------------------------
 // Mock Monte Carlo Engine (Will be replaced by Python backend)
@@ -104,6 +105,8 @@ export default function Dashboard() {
       
       {/* LEFT COLUMN: Controls (Spans 4 columns) */}
       <div className="lg:col-span-4 space-y-6">
+        
+        {/* 1. Scenario Builder */}
         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
           <h2 className="text-lg font-bold mb-1 text-white">Scenario Builder</h2>
           <p className="text-xs text-gray-500 mb-6">
@@ -115,7 +118,16 @@ export default function Dashboard() {
           <ScenarioSlider label="Transport" min={0} max={300} step={10} value={transport} onChange={setTransport} color="indigo" />
         </div>
 
-        {/* Advisory Engine Output */}
+        {/* 2. Health Score Gauge (Safely Injected) */}
+        <HealthScoreGauge 
+          score={calculateHealthScore(
+            income, 
+            totalExpense, 
+            simResult?.bankruptcyProbability ?? 50
+          )} 
+        />
+
+        {/* 3. Advisory Engine Output */}
         {advisory && (
           <div className={`rounded-2xl p-5 border text-sm leading-relaxed shadow-lg transition-colors duration-300 ${advisoryStyles[advisory.level]}`}>
             <p className="font-bold mb-2 uppercase tracking-wide text-xs flex items-center gap-2">
