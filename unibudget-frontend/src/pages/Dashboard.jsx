@@ -2,16 +2,18 @@
 // Main Dashboard Interface: Scenario Builder, Diagnostics, and Visualizations
 //
 // Architectural Inspirations & Literature Review:
-// 1. Layout & UX: Inspired by enterprise financial SaaS structures like Maybe Finance (https://github.com/maybe-finance/maybe).
-//    The golden-ratio split (4-column control panel vs. 8-column data visualization) maximizes data readability.
-// 2. Advisory Engine: Adapted from rule-based financial warning systems seen in Firefly III (https://github.com/firefly-iii/firefly-iii).
-// 3. Health Score Integration: Algorithmic weighting principles inspired by mahfuzurrahman98/financial-health-calculator.
+// 1. Layout & UX: Inspired by enterprise financial SaaS structures like Maybe Finance.
+// 2. Advisory Engine: Adapted from rule-based financial warning systems seen in Firefly III.
+// 3. Health Score Integration: Algorithmic weighting principles inspired by mahfuzurrahman98.
 
 import React, { useState, useEffect } from "react";
+import { Database } from "lucide-react";
 import ScenarioSlider from "../components/ScenarioSlider";
 import SolvencyFanChart from "../components/SolvencyFanChart";
 import useDebounce from "../hooks/useDebounce";
 import HealthScoreGauge, { calculateHealthScore } from "../components/HealthScoreGauge";
+import ScenarioManager from "../components/ScenarioManager";
+import { loadTransactions, aggregateToSliderValues } from "../data/transactionStore";
 
 // ---------------------------------------------------------------------------
 // Mock Monte Carlo Engine (Will be replaced by Python FastAPI endpoint in Phase 4)
@@ -66,11 +68,20 @@ function getAdvisoryMessage(bankruptcyProbability, expenseRatio, food, income) {
 // Main Dashboard Component
 // ---------------------------------------------------------------------------
 export default function Dashboard() {
-  // Scenario States
+  // Load baseline values directly from the shared transaction store
   const [income, setIncome] = useState(1500);
   const [rent, setRent] = useState(800);
   const [food, setFood] = useState(300);
   const [transport, setTransport] = useState(100);
+
+  // Sync with Ledger on mount
+  useEffect(() => {
+    const baseValues = aggregateToSliderValues(loadTransactions());
+    setIncome(baseValues.income);
+    setRent(baseValues.rent);
+    setFood(baseValues.food);
+    setTransport(baseValues.transport);
+  }, []);
   
   // Engine Output States
   const [simResult, setSimResult] = useState(null);
@@ -82,6 +93,25 @@ export default function Dashboard() {
   const debouncedFood = useDebounce(food, 500);
   const debouncedTransport = useDebounce(transport, 500);
 
+  // Auto-sync initial values from Bookkeeping Ledger on Mount
+  useEffect(() => {
+    const txs = JSON.parse(localStorage.getItem("unibudget_transactions") || "[]");
+    if (txs.length > 0) {
+      let calcIncome = 0, calcRent = 0, calcFood = 0, calcTransport = 0;
+      txs.forEach((tx) => {
+        if (tx.type === "income") calcIncome += tx.amount;
+        if (tx.category === "Housing") calcRent += Math.abs(tx.amount);
+        if (tx.category === "Food") calcFood += Math.abs(tx.amount);
+        if (tx.category === "Transport") calcTransport += Math.abs(tx.amount);
+      });
+      // Set sliders to real ledger data if available
+      if (calcIncome > 0) setIncome(calcIncome);
+      if (calcRent > 0) setRent(calcRent);
+      if (calcFood > 0) setFood(calcFood);
+      if (calcTransport > 0) setTransport(calcTransport);
+    }
+  }, []);
+
   // Trigger Simulation on parameter change
   useEffect(() => {
     setIsCalculating(true);
@@ -91,6 +121,14 @@ export default function Dashboard() {
     }, 300);
     return () => clearTimeout(timer);
   }, [debouncedIncome, debouncedRent, debouncedFood, debouncedTransport]);
+
+  // Load a saved scenario back into all sliders at once
+  const handleLoadScenario = (values) => {
+    setIncome(values.income);
+    setRent(values.rent);
+    setFood(values.food);
+    setTransport(values.transport);
+  };
 
   // Derived Metrics
   const totalExpense = rent + food + transport;
@@ -107,7 +145,6 @@ export default function Dashboard() {
   const riskColor = simResult?.bankruptcyProbability >= 60 ? "text-rose-400" : simResult?.bankruptcyProbability >= 40 ? "text-amber-400" : "text-emerald-400";
 
   return (
-    // Max-width 1600px wrapper for ultrawide screen optimization
     <div className="max-w-[1600px] mx-auto px-6 py-8 grid grid-cols-1 xl:grid-cols-12 gap-8">
       
       {/* ================= LEFT COLUMN: Controls & Diagnostics ================= */}
@@ -115,13 +152,26 @@ export default function Dashboard() {
         
         {/* Scenario Builder Container */}
         <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
-          <h2 className="text-lg font-bold mb-1 text-white">Scenario Builder</h2>
-          <p className="text-xs text-gray-500 mb-6">Drag sliders to model your finances.</p>
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-lg font-bold text-white">Scenario Builder</h2>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 rounded-md border border-indigo-500/20 text-indigo-400">
+              <Database size={12} />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Ledger Synced</span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 mb-6">Base values synced from Bookkeeping. Drag to forecast.</p>
+          
           <ScenarioSlider label="Monthly Income" min={500} max={5000} step={50} value={income} onChange={setIncome} color="emerald" />
-          <ScenarioSlider label="Rent" min={300} max={2000} step={25} value={rent} onChange={setRent} color="rose" />
+          <ScenarioSlider label="Rent (Housing)" min={300} max={2000} step={25} value={rent} onChange={setRent} color="rose" />
           <ScenarioSlider label="Food & Dining" min={100} max={800} step={10} value={food} onChange={setFood} color="amber" />
           <ScenarioSlider label="Transport" min={0} max={300} step={10} value={transport} onChange={setTransport} color="indigo" />
         </div>
+
+        {/* Scenario Archive Manager (The Extracted Component) */}
+        <ScenarioManager 
+          currentValues={{ income, rent, food, transport }} 
+          onLoad={handleLoadScenario} 
+        />
 
         {/* Diagnostics & Advisory Wrapper */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 flex-grow">
