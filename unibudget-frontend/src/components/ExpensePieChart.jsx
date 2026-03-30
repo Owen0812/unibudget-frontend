@@ -43,8 +43,10 @@ export default function ExpensePieChart({ data }) {
           padding: 16,
           font: { size: 12 },
           usePointStyle: true,
-          pointStyleWidth: 8,
-        },
+          pointStyle: "circle",
+          boxWidth: 6,
+          boxHeight: 6,
+          },
       },
       tooltip: {
         backgroundColor: "#1f2937",

@@ -30,7 +30,7 @@ function ScenarioSlider({ label, min, max, step = 1, value, onChange, unit = "£
       <div className="relative w-full h-2 bg-slate-800 rounded-full">
         {/* Filled coloured track */}
         <div
-          className={`absolute top-0 left-0 h-2 rounded-full transition-all duration-75 ${trackColor}`}
+          className={`absolute top-0 left-0 h-2 rounded-full ${trackColor}`}
           style={{ width: `${percentage}%` }}
         />
 
@@ -47,7 +47,7 @@ function ScenarioSlider({ label, min, max, step = 1, value, onChange, unit = "£
 
         {/* Thumb dot */}
         <div
-          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full ${trackColor} border-2 border-white shadow-lg transition-all duration-75 pointer-events-none`}
+          className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full ${trackColor} border-2 border-white shadow-lg pointer-events-none`}
           style={{ left: `calc(${percentage}% - 8px)` }}
         />
       </div>

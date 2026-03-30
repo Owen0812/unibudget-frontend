@@ -102,17 +102,39 @@ function getAdvisory(simData, config) {
 // Main Dashboard Component
 // ---------------------------------------------------------------------------
 export default function Dashboard() {
-  const savedTransactions = loadTransactions()
-  const categoryTotals    = aggregateToSliderValues(savedTransactions)
-  const actualBalance     = savedTransactions.reduce((acc, tx) => acc + tx.amount, 0)
+  const [config, setConfig] = useState(() => {
+  const txs = loadTransactions()
+  const totals = aggregateToSliderValues(txs)
+  const balance = txs.reduce((acc, tx) => acc + tx.amount, 0)
+  return {
+    current_balance:        Math.round(balance > 0 ? balance : 0),
+    monthly_income:         totals.income    || 1500,
+    monthly_rent:           totals.rent      || 800,
+    essential_spending:     totals.food      || 300,
+    discretionary_spending: totals.transport || 100,
+  }
+})
 
-  const [config, setConfig] = useState({
-    current_balance:        Math.round(actualBalance > 0 ? actualBalance : 1500),
-    monthly_income:         categoryTotals.income    || 1500,
-    monthly_rent:           categoryTotals.rent      || 800,
-    essential_spending:     categoryTotals.food      || 300,
-    discretionary_spending: categoryTotals.transport || 100,
-  })
+// Re-sync slider baselines when returning from Bookkeeping page
+useEffect(() => {
+  const handleFocus = () => {
+    const txs = loadTransactions()
+    const totals = aggregateToSliderValues(txs)
+    const balance = txs.reduce((acc, tx) => acc + tx.amount, 0)
+    setConfig((prev) => ({
+      ...prev,
+      current_balance:        Math.round(balance > 0 ? balance : 0),
+      monthly_income:         totals.income    || prev.monthly_income,
+      monthly_rent:           totals.rent      || prev.monthly_rent,
+      essential_spending:     totals.food      || prev.essential_spending,
+      discretionary_spending: totals.transport || prev.discretionary_spending,
+    }))
+  }
+
+  // Fire when user switches back to this browser tab
+  window.addEventListener("focus", handleFocus)
+  return () => window.removeEventListener("focus", handleFocus)
+}, [])
 
   const [simData, setSimData]         = useState(null)
   const [isLoading, setIsLoading]     = useState(false)

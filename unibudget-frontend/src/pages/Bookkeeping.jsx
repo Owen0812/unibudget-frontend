@@ -1,7 +1,6 @@
 // src/pages/Bookkeeping.jsx
 // Transaction ledger — CRUD with shared localStorage data layer
 // Changes here automatically propagate to Dashboard Scenario Builder
-// Syncs to PostgreSQL backend to power Advanced Analytics insights
 // Double-entry ledger design inspired by firefly-iii/firefly-iii
 
 import { useState, useEffect, useRef } from "react"
@@ -11,7 +10,6 @@ import {
   saveTransactions,
   aggregateToSliderValues,
   syncTransactionsToBackend,
-  INITIAL_TRANSACTIONS,
 } from "../data/transactionStore"
 
 const CATEGORIES = ["Income", "Housing", "Food", "Transport", "Utilities", "Leisure", "Other"]
@@ -26,6 +24,10 @@ const CATEGORY_COLORS = {
   Other:     "bg-gray-500/10 text-gray-400 border-gray-500/20",
 }
 
+const EMPTY_FORM = {
+  date: "", description: "", category: "", amount: "", type: "",
+}
+
 export default function Bookkeeping() {
   const [transactions, setTransactions] = useState(loadTransactions)
   const [search, setSearch]             = useState("")
@@ -34,16 +36,14 @@ export default function Bookkeeping() {
   const [formError, setFormError]       = useState("")
   const isFirstRender = useRef(true)
 
-  const [form, setForm] = useState({
-    date: "", description: "", category: "Food", amount: "", type: "expense",
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
 
-  // Sync to backend on page load so Advanced Insights has up-to-date data
+  // Sync to backend on page load
   useEffect(() => {
     syncTransactionsToBackend(transactions)
   }, [])
 
-  // Persist to localStorage on change, skip first render to avoid flash on load
+  // Persist to localStorage on change, skip first render
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
@@ -56,7 +56,7 @@ export default function Bookkeeping() {
   }, [transactions])
 
   const handleAdd = () => {
-    if (!form.date || !form.description || !form.amount) {
+    if (!form.date || !form.description || !form.category || !form.type || !form.amount) {
       setFormError("Please fill in all fields before adding.")
       setTimeout(() => setFormError(""), 3000)
       return
@@ -75,19 +75,24 @@ export default function Bookkeeping() {
     }
 
     setTransactions((prev) => [newTx, ...prev])
-
-    // Also push new transaction directly to backend
     syncTransactionsToBackend([newTx])
+    setForm(EMPTY_FORM)
 
-    setForm({ date: "", description: "", category: "Food", amount: "", type: "expense" })
+    // Notify Dashboard to instantly re-sync all sliders
+    window.dispatchEvent(new Event("focus"))
   }
 
-  const handleDelete = (id) =>
+  const handleDelete = (id) => {
     setTransactions((prev) => prev.filter((tx) => tx.id !== id))
+    window.dispatchEvent(new Event("focus"))
+  }
 
   const handleReset = () => {
-    setTransactions(INITIAL_TRANSACTIONS)
-    syncTransactionsToBackend(INITIAL_TRANSACTIONS)
+    if (window.confirm("This will permanently delete all transaction records. Are you sure?")) {
+      setTransactions([])
+      localStorage.removeItem("unibudget_transactions")
+      window.dispatchEvent(new Event("focus"))
+    }
   }
 
   const filtered = transactions.filter((tx) => {
@@ -114,10 +119,10 @@ export default function Bookkeeping() {
         </div>
         <button
           onClick={handleReset}
-          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-white bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 transition-colors"
+          className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-rose-400 bg-gray-900 border border-gray-800 hover:border-rose-900 rounded-xl px-4 py-2.5 transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Reset Demo Data
+          Clear All Records
         </button>
       </div>
 
@@ -135,26 +140,28 @@ export default function Bookkeeping() {
         ))}
       </div>
 
-      {/* Dashboard sync banner */}
-      <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div>
-          <p className="text-sm font-bold text-indigo-300 flex items-center gap-2 mb-1">
-            <CheckCircle2 className="w-4 h-4" />
-            Dashboard Scenario Synced
-          </p>
-          <p className="text-xs text-indigo-400/70 font-medium uppercase tracking-wider">
-            Income: £{preview.income.toLocaleString()} &nbsp;|&nbsp;
-            Rent: £{preview.rent.toLocaleString()} &nbsp;|&nbsp;
-            Food/Misc: £{preview.food.toLocaleString()} &nbsp;|&nbsp;
-            Transport: £{preview.transport.toLocaleString()}
-          </p>
+      {/* Dashboard sync banner — only show when there are transactions */}
+      {transactions.length > 0 && (
+        <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-indigo-300 flex items-center gap-2 mb-1">
+              <CheckCircle2 className="w-4 h-4" />
+              Dashboard Scenario Synced
+            </p>
+            <p className="text-xs text-indigo-400/70 font-medium uppercase tracking-wider">
+              Income: £{preview.income.toLocaleString()} &nbsp;|&nbsp;
+              Rent: £{preview.rent.toLocaleString()} &nbsp;|&nbsp;
+              Food/Misc: £{preview.food.toLocaleString()} &nbsp;|&nbsp;
+              Transport: £{preview.transport.toLocaleString()}
+            </p>
+          </div>
+          {syncFlash && (
+            <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shrink-0 animate-pulse">
+              ✓ LIVE SYNCED
+            </span>
+          )}
         </div>
-        {syncFlash && (
-          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg shrink-0 animate-pulse">
-            ✓ LIVE SYNCED
-          </span>
-        )}
-      </div>
+      )}
 
       {/* Add Transaction Form */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
@@ -164,6 +171,8 @@ export default function Bookkeeping() {
         </h3>
 
         <div className="flex flex-col lg:flex-row gap-3">
+
+          {/* Date */}
           <input
             type={form.date ? "date" : "text"}
             placeholder="Select Date"
@@ -173,30 +182,45 @@ export default function Bookkeeping() {
             onChange={(e) => setForm({ ...form, date: e.target.value })}
             className="w-full lg:w-40 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors [color-scheme:dark] shrink-0"
           />
+
+          {/* Description */}
           <input
             type="text"
             placeholder="Description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
+            onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             className="w-full lg:flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500 transition-colors"
           />
+
+          {/* Category */}
           <select
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="w-full lg:w-36 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors shrink-0"
+            className={`w-full lg:w-36 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors shrink-0 ${
+              form.category ? "text-white" : "text-gray-600"
+            }`}
           >
+            <option value="" disabled hidden>Category</option>
             {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat} className="text-white">{cat}</option>
             ))}
           </select>
+
+          {/* Type */}
           <select
             value={form.type}
             onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="w-full lg:w-28 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500 transition-colors shrink-0"
+            className={`w-full lg:w-32 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-indigo-500 transition-colors shrink-0 ${
+              form.type ? "text-white" : "text-gray-600"
+            }`}
           >
-            <option value="expense">Expense</option>
-            <option value="income">Income</option>
+            <option value="" disabled hidden>Type</option>
+            <option value="income"  className="text-white">Income</option>
+            <option value="expense" className="text-white">Expense</option>
           </select>
+
+          {/* Amount + Submit */}
           <div className="flex gap-2 w-full lg:w-52 shrink-0">
             <input
               type="number"
@@ -292,8 +316,11 @@ export default function Bookkeeping() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-600 text-sm italic">
-                  No transactions found matching your criteria.
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <p className="text-gray-500 text-sm font-medium mb-1">No transactions yet</p>
+                  <p className="text-gray-700 text-xs">
+                    Add your first income or expense above to get started.
+                  </p>
                 </td>
               </tr>
             )}
@@ -301,9 +328,11 @@ export default function Bookkeeping() {
         </table>
       </div>
 
-      <p className="text-xs text-gray-700 text-right">
-        Showing {filtered.length} of {transactions.length} transactions
-      </p>
+      {transactions.length > 0 && (
+        <p className="text-xs text-gray-700 text-right">
+          Showing {filtered.length} of {transactions.length} transactions
+        </p>
+      )}
 
     </main>
   )
