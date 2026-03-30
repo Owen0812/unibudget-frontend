@@ -1,237 +1,445 @@
 // src/pages/Dashboard.jsx
-// Main Dashboard Interface: Scenario Builder, Diagnostics, and Visualizations
-//
-// Architectural Inspirations & Literature Review:
-// 1. Layout & UX: Inspired by enterprise financial SaaS structures like Maybe Finance.
-// 2. Advisory Engine: Adapted from rule-based financial warning systems seen in Firefly III.
-// 3. Health Score Integration: Algorithmic weighting principles inspired by mahfuzurrahman98.
+// Main dashboard page — Scenario Builder, Fan Chart, Health Score, Advisory Engine
+// Layout inspired by maybe-finance/maybe enterprise SaaS dashboard structure
+// Advisory engine rules inspired by firefly-iii/firefly-iii rule-based warning system
 
-import React, { useState, useEffect } from "react";
-import { Database } from "lucide-react";
-import ScenarioSlider from "../components/ScenarioSlider";
-import SolvencyFanChart from "../components/SolvencyFanChart";
-import useDebounce from "../hooks/useDebounce";
-import HealthScoreGauge, { calculateHealthScore } from "../components/HealthScoreGauge";
-import ScenarioManager from "../components/ScenarioManager";
-import { loadTransactions, aggregateToSliderValues } from "../data/transactionStore";
+import { useState, useEffect } from "react"
+import {
+  LayoutDashboard, TrendingUp, AlertTriangle,
+  BrainCircuit, Loader2, Database,
+} from "lucide-react"
+
+import ScenarioSlider from "../components/ScenarioSlider"
+import SolvencyFanChart from "../components/SolvencyFanChart"
+import HealthScoreGauge, { calculateHealthScore } from "../components/HealthScoreGauge"
+import ExpensePieChart from "../components/ExpensePieChart"
+import ScenarioManager from "../components/ScenarioManager"
+import useDebounce from "../hooks/useDebounce"
+import { loadTransactions, aggregateToSliderValues } from "../data/transactionStore"
+import api from "../data/api"
 
 // ---------------------------------------------------------------------------
-// Mock Monte Carlo Engine (Will be replaced by Python FastAPI endpoint in Phase 4)
+// Mock Monte Carlo fallback — active when backend is offline
 // ---------------------------------------------------------------------------
-function mockMonteCarloSimulate(income, rent, food, transport) {
-  const monthlyBalance = income - rent - food - transport;
-  const expenseRatio = income > 0 ? (rent + food + transport) / income : 1;
-  
-  // Base volatility on the proportion of expenses
-  const volatility = expenseRatio * 0.4;
-  const rawRisk = Math.max(0, Math.min(1, expenseRatio - 0.3 + volatility * Math.random()));
-  const bankruptcyProbability = Math.round(rawRisk * 100);
+function mockSimulate(config) {
+  const {
+    monthly_income,
+    monthly_rent,
+    essential_spending,
+    discretionary_spending,
+    current_balance,
+  } = config
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const p5 = [], p50 = [], p95 = [];
-  let balance = 0;
+  const monthlyBalance =
+    monthly_income - monthly_rent - essential_spending - discretionary_spending
+  const totalExpense = monthly_rent + essential_spending + discretionary_spending
+  const expenseRatio = monthly_income > 0 ? totalExpense / monthly_income : 1
+  const volatility   = expenseRatio * 0.4
+  const rawRisk      = Math.max(0, Math.min(1, expenseRatio - 0.3 + volatility * Math.random()))
+  const bankruptcyProbability = Math.round(rawRisk * 100)
+
+  const p5 = [], p50 = [], p95 = []
+  let balance = current_balance || 0
 
   for (let i = 0; i < 12; i++) {
-    const shock = (Math.random() - 0.5) * volatility * income;
-    balance += monthlyBalance;
-    p50.push(Math.round(balance));
-    p5.push(Math.round(balance - Math.abs(shock) * (i + 1) * 0.8));
-    p95.push(Math.round(balance + Math.abs(shock) * (i + 1) * 0.5));
+    const shock = (Math.random() - 0.5) * volatility * monthly_income
+    balance += monthlyBalance
+    p50.push(Math.round(balance))
+    p5.push(Math.round(balance  - Math.abs(shock) * (i + 1) * 0.8))
+    p95.push(Math.round(balance + Math.abs(shock) * (i + 1) * 0.5))
   }
 
-  return { bankruptcyProbability, months, p5, p50, p95, monthlyBalance };
+  return {
+    bankruptcy_probability: bankruptcyProbability,
+    health_score: calculateHealthScore(monthly_income, totalExpense, bankruptcyProbability),
+    days: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    p5,
+    p50,
+    p95,
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Context-Aware Advisory Engine
+// Advisory engine
+// Rule-based contextual warnings inspired by firefly-iii rule engine design
 // ---------------------------------------------------------------------------
-function getAdvisoryMessage(bankruptcyProbability, expenseRatio, food, income) {
-  if (bankruptcyProbability >= 60) return { 
-    level: "critical", 
-    message: "Critical risk: bankruptcy probability exceeds 60%. Immediate reduction in variable expenses is strongly advised." 
-  };
-  if (bankruptcyProbability >= 40) return { 
-    level: "warning", 
-    message: "Elevated risk detected. Consider reducing discretionary spending to improve your 12-month solvency outlook." 
-  };
-  if (income > 0 && food / income > 0.25) return { 
-    level: "warning", 
-    message: "Food expenses exceed 25% of income. Reviewing your grocery and dining budget may improve financial resilience." 
-  };
-  return { 
-    level: "good", 
-    message: "Your current scenario looks financially stable. Keep maintaining a healthy monthly surplus." 
-  };
+function getAdvisory(simData, config) {
+  if (!simData) return { text: "Awaiting simulation results...", type: "info" }
+
+  const { bankruptcy_probability, p5 } = simData
+  const finalP5 = p5?.[p5.length - 1] ?? 0
+  const { discretionary_spending, monthly_income } = config
+
+  if (bankruptcy_probability >= 60 || finalP5 < 0) {
+    return {
+      type: "danger",
+      text:
+        `Critical: ${bankruptcy_probability}% bankruptcy probability detected.\n` +
+        (discretionary_spending > monthly_income * 0.1
+          ? `Discretionary spending (£${discretionary_spending}) is high relative to income. Reduce variable costs immediately.`
+          : "Essential costs may cause bankruptcy under stress. Consider cheaper housing or additional income sources."),
+    }
+  }
+  if (bankruptcy_probability >= 30) {
+    return {
+      type: "warning",
+      text: `Warning: Elevated risk at ${bankruptcy_probability}%.\nKeep monitoring discretionary spending and maintain an emergency fund of at least 3 months' expenses.`,
+    }
+  }
+  if (finalP5 > 1000 && discretionary_spending < 100) {
+    return {
+      type: "success",
+      text: "Financial position looks stable. Low discretionary spending and a positive P5 outlook. Consider allocating surplus to savings or investments.",
+    }
+  }
+  return {
+    type: "info",
+    text: "Financial outlook is moderate. Maintain current spending habits and review monthly for any drift in variable costs.",
+  }
 }
 
 // ---------------------------------------------------------------------------
 // Main Dashboard Component
 // ---------------------------------------------------------------------------
 export default function Dashboard() {
-  // Load baseline values directly from the shared transaction store
-  const [income, setIncome] = useState(1500);
-  const [rent, setRent] = useState(800);
-  const [food, setFood] = useState(300);
-  const [transport, setTransport] = useState(100);
+  const savedTransactions = loadTransactions()
+  const categoryTotals    = aggregateToSliderValues(savedTransactions)
+  const actualBalance     = savedTransactions.reduce((acc, tx) => acc + tx.amount, 0)
 
-  // Sync with Ledger on mount
+  const [config, setConfig] = useState({
+    current_balance:        Math.round(actualBalance > 0 ? actualBalance : 1500),
+    monthly_income:         categoryTotals.income    || 1500,
+    monthly_rent:           categoryTotals.rent      || 800,
+    essential_spending:     categoryTotals.food      || 300,
+    discretionary_spending: categoryTotals.transport || 100,
+  })
+
+  const [simData, setSimData]         = useState(null)
+  const [isLoading, setIsLoading]     = useState(false)
+  const [isBackendOnline, setBackend] = useState(true)
+
+  const debouncedConfig = useDebounce(config, 500)
+
   useEffect(() => {
-    const baseValues = aggregateToSliderValues(loadTransactions());
-    setIncome(baseValues.income);
-    setRent(baseValues.rent);
-    setFood(baseValues.food);
-    setTransport(baseValues.transport);
-  }, []);
-  
-  // Engine Output States
-  const [simResult, setSimResult] = useState(null);
-  const [isCalculating, setIsCalculating] = useState(false);
+    const run = async () => {
+      setIsLoading(true)
+      try {
+        const payload = {
+          initialBalance: debouncedConfig.current_balance + debouncedConfig.monthly_income,
+          daysToSimulate: 30,
+          expenses: [
+            {
+              id: "rent", name: "Rent", type: "fixed",
+              amount: debouncedConfig.monthly_rent,
+              frequency: "monthly", dayOfCharge: 1,
+              min: 0, max: 0, probabilityPerDay: 0,
+            },
+            {
+              id: "essential", name: "Essential Spending", type: "variable",
+              min: (debouncedConfig.essential_spending * 0.8) / 30,
+              max: (debouncedConfig.essential_spending * 1.2) / 30,
+              frequency: "daily",
+              amount: 0, dayOfCharge: 1, probabilityPerDay: 0,
+            },
+            {
+              id: "discretionary", name: "Discretionary Spending", type: "sporadic",
+              min: 0,
+              max: debouncedConfig.discretionary_spending * 0.3,
+              probabilityPerDay: 0.4,
+              amount: 0, dayOfCharge: 1, frequency: "daily",
+            },
+          ],
+        }
 
-  // Debounced values to prevent continuous triggering during slider drag
-  const debouncedIncome = useDebounce(income, 500);
-  const debouncedRent = useDebounce(rent, 500);
-  const debouncedFood = useDebounce(food, 500);
-  const debouncedTransport = useDebounce(transport, 500);
+        const res = await api.post("/simulate", payload)
+        const d   = res.data
+        const raw = d.chart_data ?? {}
 
-  // Auto-sync initial values from Bookkeeping Ledger on Mount
-  useEffect(() => {
-    const txs = JSON.parse(localStorage.getItem("unibudget_transactions") || "[]");
-    if (txs.length > 0) {
-      let calcIncome = 0, calcRent = 0, calcFood = 0, calcTransport = 0;
-      txs.forEach((tx) => {
-        if (tx.type === "income") calcIncome += tx.amount;
-        if (tx.category === "Housing") calcRent += Math.abs(tx.amount);
-        if (tx.category === "Food") calcFood += Math.abs(tx.amount);
-        if (tx.category === "Transport") calcTransport += Math.abs(tx.amount);
-      });
-      // Set sliders to real ledger data if available
-      if (calcIncome > 0) setIncome(calcIncome);
-      if (calcRent > 0) setRent(calcRent);
-      if (calcFood > 0) setFood(calcFood);
-      if (calcTransport > 0) setTransport(calcTransport);
+        const sample = (arr) => {
+          if (!arr || arr.length === 0) return Array(12).fill(0)
+          return Array.from({ length: 12 }, (_, i) => {
+            const idx = Math.min(Math.floor((i / 12) * arr.length), arr.length - 1)
+            return arr[idx] ?? 0
+          })
+        }
+
+        const totalExpenseMonthly =
+          debouncedConfig.monthly_rent +
+          debouncedConfig.essential_spending +
+          debouncedConfig.discretionary_spending
+
+        const healthScore = calculateHealthScore(
+          debouncedConfig.monthly_income,
+          totalExpenseMonthly,
+          d.bankruptcy_probability ?? 0
+        )
+
+        setSimData({
+          bankruptcy_probability: d.bankruptcy_probability ?? 0,
+          health_score:           healthScore,
+          days: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+          p5:  sample(raw.p5),
+          p50: sample(raw.p50),
+          p95: sample(raw.p95),
+        })
+        setBackend(true)
+
+      } catch {
+        setBackend(false)
+        setSimData(mockSimulate(debouncedConfig))
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, []);
+    run()
+  }, [debouncedConfig])
 
-  // Trigger Simulation on parameter change
-  useEffect(() => {
-    setIsCalculating(true);
-    const timer = setTimeout(() => {
-      setSimResult(mockMonteCarloSimulate(debouncedIncome, debouncedRent, debouncedFood, debouncedTransport));
-      setIsCalculating(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [debouncedIncome, debouncedRent, debouncedFood, debouncedTransport]);
+  const totalExpense = config.monthly_rent + config.essential_spending + config.discretionary_spending
+  const balance      = config.monthly_income - totalExpense
 
-  // Load a saved scenario back into all sliders at once
-  const handleLoadScenario = (values) => {
-    setIncome(values.income);
-    setRent(values.rent);
-    setFood(values.food);
-    setTransport(values.transport);
-  };
+  const advisory = getAdvisory(simData, config)
 
-  // Derived Metrics
-  const totalExpense = rent + food + transport;
-  const balance = income - totalExpense;
-  const expenseRatio = income > 0 ? totalExpense / income : 1;
-  const advisory = simResult ? getAdvisoryMessage(simResult.bankruptcyProbability, expenseRatio, food, income) : null;
-
-  // UI Theme Mapping
   const advisoryStyles = {
-    critical: "border-rose-500 bg-rose-500/10 text-rose-300",
-    warning: "border-amber-500 bg-amber-500/10 text-amber-300",
-    good: "border-emerald-500 bg-emerald-500/10 text-emerald-300",
-  };
-  const riskColor = simResult?.bankruptcyProbability >= 60 ? "text-rose-400" : simResult?.bankruptcyProbability >= 40 ? "text-amber-400" : "text-emerald-400";
+    danger:  "bg-rose-500/10 border-rose-500/30 text-rose-300",
+    warning: "bg-amber-500/10 border-amber-500/30 text-amber-300",
+    success: "bg-emerald-500/10 border-emerald-500/30 text-emerald-300",
+    info:    "bg-indigo-500/10 border-indigo-500/30 text-indigo-300",
+  }
+
+  const advisoryIcons = {
+    danger:  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />,
+    warning: <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />,
+    success: <TrendingUp className="w-5 h-5 shrink-0 mt-0.5" />,
+    info:    <BrainCircuit className="w-5 h-5 shrink-0 mt-0.5" />,
+  }
+
+  const advisoryLabels = {
+    danger:  "Critical Alert",
+    warning: "Advisory Notice",
+    success: "Looking Good",
+    info:    "Analysis Result",
+  }
 
   return (
-    <div className="max-w-[1600px] mx-auto px-6 py-8 grid grid-cols-1 xl:grid-cols-12 gap-8">
-      
-      {/* ================= LEFT COLUMN: Controls & Diagnostics ================= */}
-      <div className="xl:col-span-4 space-y-6 flex flex-col">
-        
-        {/* Scenario Builder Container */}
-        <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl">
-          <div className="flex justify-between items-center mb-1">
-            <h2 className="text-lg font-bold text-white">Scenario Builder</h2>
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-indigo-500/10 rounded-md border border-indigo-500/20 text-indigo-400">
-              <Database size={12} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">Ledger Synced</span>
-            </div>
+    <div className="min-h-full bg-gray-950 p-6 md:p-8 space-y-6 text-white">
+
+      {/* BCS legal disclaimer */}
+      <div className="bg-amber-500/10 border border-amber-500/20 border-l-4 border-l-amber-500 p-4 rounded-xl">
+        <p className="text-xs font-bold text-amber-400 mb-0.5">Legal Disclaimer</p>
+        <p className="text-xs text-amber-300/60 leading-relaxed">
+          Results are probabilistic projections, not professional financial advice.
+          Always consult a certified financial advisor. BCS Code of Conduct observed.
+        </p>
+      </div>
+
+      {/* Page header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="bg-indigo-500/20 border border-indigo-500/30 p-3 rounded-xl">
+            <LayoutDashboard className="w-7 h-7 text-indigo-400" />
           </div>
-          <p className="text-xs text-gray-500 mb-6">Base values synced from Bookkeeping. Drag to forecast.</p>
-          
-          <ScenarioSlider label="Monthly Income" min={500} max={5000} step={50} value={income} onChange={setIncome} color="emerald" />
-          <ScenarioSlider label="Rent (Housing)" min={300} max={2000} step={25} value={rent} onChange={setRent} color="rose" />
-          <ScenarioSlider label="Food & Dining" min={100} max={800} step={10} value={food} onChange={setFood} color="amber" />
-          <ScenarioSlider label="Transport" min={0} max={300} step={10} value={transport} onChange={setTransport} color="indigo" />
+          <div>
+            <h1 className="text-2xl font-extrabold text-white tracking-tight">Dashboard</h1>
+            <p className="text-gray-500 text-sm mt-0.5">
+              Proactive Financial Forecasting & Risk Analysis
+            </p>
+          </div>
         </div>
 
-        {/* Scenario Archive Manager (The Extracted Component) */}
-        <ScenarioManager 
-          currentValues={{ income, rent, food, transport }} 
-          onLoad={handleLoadScenario} 
-        />
+        <div className="flex items-center gap-3">
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-1.5 ${
+            isBackendOnline
+              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+              : "bg-gray-800 border-gray-700 text-gray-500"
+          }`}>
+            <Database className="w-3 h-3" />
+            {isBackendOnline ? "Live Engine" : "Mock Mode"}
+          </span>
 
-        {/* Diagnostics & Advisory Wrapper */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 flex-grow">
-          <HealthScoreGauge score={calculateHealthScore(income, totalExpense, simResult?.bankruptcyProbability ?? 50)} />
-          
-          {advisory && (
-            <div className={`rounded-2xl p-5 border text-sm leading-relaxed shadow-xl transition-colors duration-300 ${advisoryStyles[advisory.level]}`}>
-              <p className="font-bold mb-2 uppercase tracking-wide text-xs flex items-center gap-2">
-                {advisory.level === "critical" && "⛔ Critical Alert"}
-                {advisory.level === "warning"  && "⚠️ Advisory Notice"}
-                {advisory.level === "good"     && "✅ System Nominal"}
-              </p>
-              <p className="opacity-90">{advisory.message}</p>
+          {isLoading && (
+            <div className="flex items-center gap-2 text-indigo-400 bg-gray-900 px-4 py-2 rounded-full border border-gray-800">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-xs font-medium">Simulating 10,000 scenarios...</span>
             </div>
           )}
         </div>
+      </header>
+
+      {/* KPI summary row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          {
+            label: "Monthly Balance",
+            value: `£${balance.toLocaleString()}`,
+            color: balance >= 0 ? "text-emerald-400" : "text-rose-400",
+          },
+          {
+            label: "Total Expenses",
+            value: `£${totalExpense.toLocaleString()}`,
+            color: "text-rose-400",
+          },
+          {
+            label: "Bankruptcy Risk",
+            value: simData ? `${simData.bankruptcy_probability}%` : "--",
+            color: !simData                                   ? "text-gray-500"
+                 : simData.bankruptcy_probability >= 60       ? "text-rose-400"
+                 : simData.bankruptcy_probability >= 30       ? "text-amber-400"
+                 : "text-emerald-400",
+          },
+          {
+            label: "Health Score",
+            value: simData ? `${simData.health_score}/100` : "--",
+            color: !simData                   ? "text-gray-500"
+                 : simData.health_score >= 70 ? "text-emerald-400"
+                 : simData.health_score >= 40 ? "text-amber-400"
+                 : "text-rose-400",
+          },
+        ].map((kpi) => (
+          <div
+            key={kpi.label}
+            className="bg-gray-900 border border-gray-800 rounded-2xl p-5 shadow-xl"
+          >
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              {kpi.label}
+            </p>
+            <p className={`text-2xl font-extrabold ${kpi.color} ${isLoading ? "opacity-40" : ""} transition-opacity`}>
+              {kpi.value}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* ================= RIGHT COLUMN: Data Visualization ================= */}
-      <div className="xl:col-span-8 flex flex-col space-y-6">
-        
-        {/* Key Performance Indicators (KPIs) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl flex flex-col justify-center">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Monthly Surplus</p>
-            <p className={`text-3xl font-black ${balance >= 0 ? "text-emerald-400" : "text-rose-500"}`}>£{balance.toLocaleString()}</p>
-          </div>
-          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800 shadow-xl flex flex-col justify-center">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Total Expenses</p>
-            <p className="text-3xl font-black text-white">£{totalExpense.toLocaleString()}</p>
-          </div>
-          <div className={`rounded-2xl p-6 border shadow-xl flex flex-col justify-center transition-colors duration-500 ${isCalculating ? 'opacity-70' : ''} ${simResult?.bankruptcyProbability >= 60 ? 'bg-rose-950/20 border-rose-900/50' : 'bg-gray-900 border-gray-800'}`}>
-             <div className="flex justify-between items-start">
-               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Bankruptcy Risk</p>
-               {isCalculating && <span className="text-[10px] font-mono text-indigo-400 animate-pulse uppercase">Calculating...</span>}
-             </div>
-             {simResult ? (
-               <p className={`text-4xl font-black ${riskColor}`}>{simResult.bankruptcyProbability}%</p>
-             ) : (
-               <p className="text-xl font-bold text-gray-600">--</p>
-             )}
-          </div>
-        </div>
+      {/* Main grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
 
-        {/* Primary Visualization: Solvency Fan Chart */}
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl flex-1 flex flex-col min-h-[500px]">
-          <h3 className="font-bold text-sm text-gray-300 mb-4">12-Month Solvency Fan Chart</h3>
-          <div className={`flex-1 relative transition-opacity duration-500 ${isCalculating ? 'opacity-40 grayscale-[30%]' : 'opacity-100'}`}>
-            {simResult && (
-              <SolvencyFanChart
-                months={simResult.months}
-                p5={simResult.p5}
-                p50={simResult.p50}
-                p95={simResult.p95}
-              />
+        {/* Left column: controls */}
+        <aside className="xl:col-span-4 space-y-6">
+
+          {/* Scenario Builder */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-base font-bold text-white">Scenario Builder</h2>
+              <span className="flex items-center gap-1 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded-md">
+                <Database className="w-3 h-3" />
+                Ledger Synced
+              </span>
+            </div>
+            <p className="text-xs text-gray-600 mb-6">
+              Baseline from Bookkeeping. Drag to forecast.
+            </p>
+
+            <ScenarioSlider
+              label="Current Balance" unit="£"
+              min={0} max={10000} step={100}
+              value={config.current_balance}
+              onChange={(v) => setConfig((p) => ({ ...p, current_balance: v }))}
+              color="teal"
+            />
+            <ScenarioSlider
+              label="Monthly Income" unit="£"
+              min={0} max={5000} step={50}
+              value={config.monthly_income}
+              onChange={(v) => setConfig((p) => ({ ...p, monthly_income: v }))}
+              color="emerald"
+            />
+            <ScenarioSlider
+              label="Rent" unit="£"
+              min={0} max={3000} step={25}
+              value={config.monthly_rent}
+              onChange={(v) => setConfig((p) => ({ ...p, monthly_rent: v }))}
+              color="rose"
+            />
+            <ScenarioSlider
+              label="Essential Spending" unit="£"
+              min={0} max={2000} step={25}
+              value={config.essential_spending}
+              onChange={(v) => setConfig((p) => ({ ...p, essential_spending: v }))}
+              color="amber"
+            />
+            <ScenarioSlider
+              label="Discretionary Spending" unit="£"
+              min={0} max={2000} step={25}
+              value={config.discretionary_spending}
+              onChange={(v) => setConfig((p) => ({ ...p, discretionary_spending: v }))}
+              color="purple"
+            />
+          </div>
+
+          {/* Scenario save / load manager */}
+          <ScenarioManager
+            currentValues={config}
+            onLoad={setConfig}
+          />
+
+        </aside>
+
+        {/* Right column: visualisations */}
+        <div className="xl:col-span-8 space-y-6">
+
+          {/* Health Score + Expense Pie */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <HealthScoreGauge
+              score={
+                simData?.health_score ??
+                calculateHealthScore(config.monthly_income, totalExpense, 50)
+              }
+            />
+            <ExpensePieChart
+              data={{
+                rent:      config.monthly_rent,
+                food:      config.essential_spending,
+                transport: config.discretionary_spending,
+              }}
+            />
+          </div>
+
+          {/* Solvency Fan Chart */}
+          <div className="relative">
+            {isLoading && !simData && (
+              <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-3 rounded-2xl">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
+                <p className="text-indigo-400 text-sm font-semibold">
+                  Running Monte Carlo Simulations...
+                </p>
+              </div>
             )}
-          </div>
-        </div>
 
+            <div className={`transition-opacity duration-300 ${isLoading ? "opacity-30" : "opacity-100"}`}>
+              {simData ? (
+                <SolvencyFanChart
+                  days={simData.days}
+                  p5={simData.p5}
+                  p50={simData.p50}
+                  p95={simData.p95}
+                />
+              ) : (
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 h-80 flex items-center justify-center text-gray-600 text-sm italic shadow-xl">
+                  Adjust sliders to see projection...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Dynamic Advisory Insights */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <BrainCircuit className="w-5 h-5 text-indigo-400" />
+              <h3 className="text-base font-bold text-white">Dynamic Advisory Insights</h3>
+            </div>
+
+            <div className={`flex items-start gap-3 p-4 rounded-xl border text-sm leading-relaxed ${advisoryStyles[advisory.type]}`}>
+              {advisoryIcons[advisory.type]}
+              <div>
+                <p className="font-bold text-xs uppercase tracking-wider mb-1 opacity-70">
+                  {advisoryLabels[advisory.type]}
+                </p>
+                <p className="whitespace-pre-line">{advisory.text}</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
-  );
+  )
 }

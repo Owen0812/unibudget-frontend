@@ -16,7 +16,6 @@ import {
 } from "chart.js";
 import { Line } from "react-chartjs-2";
 
-// Register all required Chart.js modules
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -27,28 +26,25 @@ ChartJS.register(
   Legend
 );
 
-export default function SolvencyFanChart({ months, p5, p50, p95 }) {
-  // Guard clause: render nothing if data is not yet available to prevent crashes
-  if (!months || !p5 || !p50 || !p95) return null;
+export default function SolvencyFanChart({ days, p5, p50, p95 }) {
+  if (!days || !p5 || !p50 || !p95) return null;
 
   const data = {
-    labels: months,
+    labels: days,
     datasets: [
-      // P95 — Optimistic upper band (filled down to P5)
       {
         label: "P95 (Optimistic)",
         data: p95,
         borderColor: "rgba(99, 102, 241, 0)",
-        backgroundColor: "rgba(99, 102, 241, 0.15)", // Indigo transparent fill
-        fill: "+2", // Advanced Chart.js trick: fill to dataset index 2 (P5)
+        backgroundColor: "rgba(99, 102, 241, 0.15)", 
+        fill: "+2", 
         tension: 0.4,
         pointRadius: 0,
       },
-      // P50 — Median forecast line
       {
         label: "P50 (Median)",
         data: p50,
-        borderColor: "rgba(99, 102, 241, 1)", // Solid Indigo
+        borderColor: "rgba(99, 102, 241, 1)", 
         backgroundColor: "transparent",
         fill: false,
         tension: 0.4,
@@ -56,7 +52,6 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
         pointBackgroundColor: "rgba(99, 102, 241, 1)",
         borderWidth: 2,
       },
-      // P5 — Pessimistic lower band
       {
         label: "P5 (Pessimistic)",
         data: p5,
@@ -73,7 +68,6 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      // Show all three values on hover at the same x-axis position
       mode: "index",
       intersect: false,
     },
@@ -84,7 +78,6 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
           color: "#9ca3af",
           boxWidth: 12,
           font: { size: 11 },
-          // Filter legend: Only show the median line toggle to keep UI clean
           filter: (item) => item.text === "P50 (Median)",
         },
       },
@@ -95,7 +88,7 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
         borderColor: "#374151",
         borderWidth: 1,
         callbacks: {
-          // Format tooltip values as GBP currency
+          title: (ctx) => `Day ${ctx[0].label}`,
           label: (ctx) => ` ${ctx.dataset.label}: £${ctx.parsed.y.toLocaleString()}`,
         },
       },
@@ -110,7 +103,6 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
         ticks: {
           color: "#6b7280",
           font: { size: 11 },
-          // Format y-axis labels as GBP
           callback: (value) => `£${value.toLocaleString()}`,
         },
       },
@@ -140,7 +132,6 @@ export default function SolvencyFanChart({ months, p5, p50, p95 }) {
         * Shaded band represents the 90% confidence interval across 10,000 simulated scenarios.
       </p>
       
-      {/* Chart canvas container — fixed height for consistent layout */}
       <div className="h-64 relative">
         <Line data={data} options={options} />
       </div>
