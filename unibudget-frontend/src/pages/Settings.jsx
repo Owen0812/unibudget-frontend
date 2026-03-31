@@ -112,14 +112,13 @@ export default function Settings() {
   }
 
   const handleDeleteAccount = () => {
-    if (window.confirm("This will permanently delete all your local data. Are you sure?")) {
-      localStorage.removeItem("unibudget_transactions")
-      localStorage.removeItem("unibudget_scenarios")
-      sessionStorage.removeItem("gdpr_accepted")
-      setDeleteFlash(true)
-      setTimeout(() => window.location.href = "/login", 1500)
-    }
+  if (window.confirm("This will permanently delete all your local data. Are you sure?")) {
+    localStorage.clear()
+    sessionStorage.clear()
+    setDeleteFlash(true)
+    setTimeout(() => window.location.href = "/login", 1500)
   }
+}
 
   return (
     <main className="min-h-full bg-gray-950 max-w-3xl mx-auto px-6 py-8 space-y-6">
