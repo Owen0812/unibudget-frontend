@@ -107,11 +107,11 @@ export default function Dashboard() {
   const totals = aggregateToSliderValues(txs)
   const balance = txs.reduce((acc, tx) => acc + tx.amount, 0)
   return {
-    current_balance:        Math.round(balance > 0 ? balance : 0),
-    monthly_income:         totals.income    || 1500,
-    monthly_rent:           totals.rent      || 800,
-    essential_spending:     totals.food      || 300,
-    discretionary_spending: totals.transport || 100,
+    current_balance:        0,
+    monthly_income:         totals.income,
+    monthly_rent:           totals.rent,
+    essential_spending:     totals.food,
+    discretionary_spending: totals.transport,
   }
 })
 
@@ -122,13 +122,13 @@ useEffect(() => {
     const totals = aggregateToSliderValues(txs)
     const balance = txs.reduce((acc, tx) => acc + tx.amount, 0)
     setConfig((prev) => ({
-      ...prev,
-      current_balance:        Math.round(balance > 0 ? balance : 0),
-      monthly_income:         totals.income    || prev.monthly_income,
-      monthly_rent:           totals.rent      || prev.monthly_rent,
-      essential_spending:     totals.food      || prev.essential_spending,
-      discretionary_spending: totals.transport || prev.discretionary_spending,
-    }))
+  ...prev,
+  current_balance:        0,
+  monthly_income:         totals.income,
+  monthly_rent:           totals.rent,
+  essential_spending:     totals.food,
+  discretionary_spending: totals.transport,
+   }))
   }
 
   // Fire when user switches back to this browser tab
