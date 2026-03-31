@@ -24,7 +24,7 @@ export function saveTransactions(transactions) {
 // ---------------------------------------------------------------------------
 export async function syncTransactionsToBackend(transactions) {
   try {
-    const API_BASE = "http://localhost:8000"
+    const API_BASE = "https://unibudget-backend.onrender.com"
 
     const res = await fetch(`${API_BASE}/api/transactions/`)
     if (!res.ok) return
@@ -57,10 +57,6 @@ export async function syncTransactionsToBackend(transactions) {
 
 // ---------------------------------------------------------------------------
 // Aggregate transactions into slider-compatible values
-// Income    = sum of all income entries
-// Housing   = sum of Housing category expenses
-// Food      = sum of Food + Leisure + Utilities
-// Transport = sum of Transport category expenses
 // ---------------------------------------------------------------------------
 export function aggregateToSliderValues(transactions) {
   const sum = (cat) =>

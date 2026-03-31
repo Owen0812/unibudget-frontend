@@ -18,11 +18,7 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialise in-memory response cache on startup
-    # Phase 2 upgrade: swap InMemoryBackend for RedisBackend when Redis is available
     FastAPICache.init(InMemoryBackend(), prefix="unibudget-cache")
-
-    # Auto-create database tables if they do not exist
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
@@ -48,7 +44,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://unibudget-lab.vercel.app",
+        "https://unibudget-frontend.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
