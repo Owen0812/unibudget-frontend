@@ -2,7 +2,7 @@
 // User Settings and Compliance Centre
 // Features: Account management, GDPR data controls, Notifications, and Interactive Theme Colors.
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   User, ShieldCheck, Bell, Palette,
   Trash2, Download, LogOut, ChevronRight, CheckCircle,
@@ -115,8 +115,9 @@ export default function Settings() {
     if (window.confirm("This will permanently delete all your local data. Are you sure?")) {
       localStorage.removeItem("unibudget_transactions")
       localStorage.removeItem("unibudget_scenarios")
+      sessionStorage.removeItem("gdpr_accepted")
       setDeleteFlash(true)
-      setTimeout(() => window.location.reload(), 1500)
+      setTimeout(() => window.location.href = "/login", 1500)
     }
   }
 
@@ -131,7 +132,7 @@ export default function Settings() {
         </p>
       </div>
 
-      {/* 1. Appearance — no dark mode toggle, always dark */}
+      {/* 1. Appearance */}
       <SettingsSection
         icon={Palette}
         title="Appearance"
@@ -267,13 +268,13 @@ export default function Settings() {
         <DangerButton
           icon={Trash2}
           label="Delete My Account"
-          description="GDPR Art. 17 — Right to Erasure."
+          description="GDPR Art. 17 — Right to Erasure. Clears all local data and signs you out."
           buttonLabel="Delete Account"
           onClick={handleDeleteAccount}
         />
         {deleteFlash && (
           <p className="text-xs text-rose-400 flex items-center gap-1">
-            <CheckCircle className="w-3 h-3" /> Local data cleared.
+            <CheckCircle className="w-3 h-3" /> Data cleared. Redirecting to login...
           </p>
         )}
 
@@ -286,12 +287,12 @@ export default function Settings() {
       {/* 5. About */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 text-xs text-gray-600 space-y-1.5">
         <p className="font-bold text-gray-400 mb-3 text-sm">About UniBudget Lab</p>
-        <p><span className="text-gray-500">Version:</span> 1.0.0</p>
+        <p><span className="text-gray-500">Version:</span> 2.1.0</p>
         <p><span className="text-gray-500">Context:</span> COMP208 Group Project, University of Liverpool</p>
         <p><span className="text-gray-500">Stack:</span> React · Tailwind CSS · Chart.js · FastAPI · PostgreSQL</p>
         <div className="pt-3 mt-2 border-t border-gray-800">
           <p className="mb-1.5 text-gray-500 font-medium">Architectural inspirations:</p>
-          <p>maybe-finance/maybe · firefly-iii/firefly-iii · actualbudget/actual</p>
+          <p>maybe-finance/maybe · firefly-iii/firefly-iii · actualbudget/actual · ghostfolio/ghostfolio</p>
         </div>
         <p className="pt-3 mt-2 border-t border-gray-800 text-gray-700 leading-relaxed">
           Disclaimer: Results are probabilistic projections, not professional financial advice.
