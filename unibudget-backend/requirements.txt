@@ -10,3 +10,4 @@ aiosqlite>=0.19.0
 greenlet>=3.0.1
 fastapi-cache2>=0.2.1
 jinja2>=3.1.2
+httpx>=0.24.0
