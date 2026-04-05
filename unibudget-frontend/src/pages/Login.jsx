@@ -1,9 +1,9 @@
 // src/pages/Login.jsx
-// GitHub OAuth 2.0 login with GDPR consent flow
+// GitHub OAuth 2.0 + Guest Mode login with GDPR consent flow
 // Satisfies project objective 1 — OAuth 2.0 + GDPR compliance
 
 import React, { useState } from "react"
-import { Scale, LogIn, CheckCircle } from "lucide-react"
+import { Scale, LogIn, CheckCircle, UserCircle } from "lucide-react"
 
 const GithubIcon = () => (
   <svg className="w-4 h-4 fill-current" viewBox="0 0 16 16">
@@ -13,7 +13,7 @@ const GithubIcon = () => (
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000"
 
-function GdprModal({ onAccept }) {
+function GdprModal({ onAccept, onDecline }) {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center p-4 z-50">
       <div className="bg-gray-900 border border-gray-700 rounded-3xl p-8 max-w-xl w-full shadow-2xl space-y-5">
@@ -31,7 +31,7 @@ function GdprModal({ onAccept }) {
           </p>
           <ul className="space-y-2">
             {[
-              "We collect only your display name and email from your GitHub account.",
+              "We collect only your display name and email from your account.",
               "We never connect to real banking APIs or access your bank accounts.",
               "Your financial scenarios are stored encrypted in our database.",
               "You may request deletion of all your data at any time via Settings.",
@@ -48,7 +48,13 @@ function GdprModal({ onAccept }) {
             BCS Code of Conduct observed.
           </p>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-between gap-3">
+          <button
+            onClick={onDecline}
+            className="px-6 py-3 rounded-xl font-bold bg-gray-800 hover:bg-gray-700 text-gray-400 transition-colors text-sm"
+          >
+            Decline
+          </button>
           <button
             onClick={onAccept}
             className="px-6 py-3 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shadow-lg text-sm"
@@ -64,22 +70,49 @@ function GdprModal({ onAccept }) {
 export default function Login({ onLoginSuccess }) {
   const [showGdpr, setShowGdpr]         = useState(false)
   const [gdprAccepted, setGdprAccepted] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
 
+  // User clicks GitHub button → show GDPR modal first
   const handleGithubClick = () => {
+    setPendingAction("github")
     setShowGdpr(true)
   }
 
+  // User clicks Guest button → show GDPR modal first
+  const handleGuestClick = () => {
+    setPendingAction("guest")
+    setShowGdpr(true)
+  }
+
+  // User accepts GDPR
   const handleAccept = () => {
     setShowGdpr(false)
     setGdprAccepted(true)
     sessionStorage.setItem("gdpr_accepted", "true")
-    window.location.href = `${BACKEND_URL}/auth/github/login`
+
+    if (pendingAction === "github") {
+      // Redirect to backend GitHub OAuth endpoint
+      window.location.href = `${BACKEND_URL}/auth/github/login`
+    } else if (pendingAction === "guest") {
+      // Guest mode — store guest user info and go to dashboard
+      sessionStorage.setItem("github_user", "Guest")
+      sessionStorage.setItem("github_avatar", "")
+      window.location.href = "/dashboard"
+    }
+  }
+
+  // User declines GDPR
+  const handleDecline = () => {
+    setShowGdpr(false)
+    setPendingAction(null)
   }
 
   return (
     <div className="min-h-screen w-full bg-gray-950 flex flex-col items-center justify-center p-6">
 
-      {showGdpr && <GdprModal onAccept={handleAccept} />}
+      {showGdpr && (
+        <GdprModal onAccept={handleAccept} onDecline={handleDecline} />
+      )}
 
       {/* Logo */}
       <div className="flex items-center gap-3 mb-10">
@@ -93,11 +126,11 @@ export default function Login({ onLoginSuccess }) {
       </div>
 
       {/* Login card */}
-      <div className="bg-gray-900 border border-gray-800 rounded-3xl p-10 shadow-2xl w-full max-w-md space-y-6">
-        <div className="text-center">
+      <div className="bg-gray-900 border border-gray-800 rounded-3xl p-10 shadow-2xl w-full max-w-md space-y-4">
+        <div className="text-center mb-2">
           <h2 className="text-2xl font-black text-white">Sign In</h2>
           <p className="text-sm text-gray-500 mt-1.5">
-            Sign in with your GitHub account to continue.
+            Choose how you'd like to continue.
             You will be asked to review our privacy notice.
           </p>
         </div>
@@ -111,12 +144,28 @@ export default function Login({ onLoginSuccess }) {
           Continue with GitHub
         </button>
 
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-800" />
+          <span className="text-xs text-gray-600">or</span>
+          <div className="flex-1 h-px bg-gray-800" />
+        </div>
+
+        {/* Guest mode button */}
+        <button
+          onClick={handleGuestClick}
+          className="w-full flex items-center justify-center gap-3 bg-gray-900 text-gray-300 font-bold py-3.5 rounded-xl border border-gray-700 hover:bg-gray-800 hover:text-white transition-all text-sm"
+        >
+          <UserCircle className="w-4 h-4" />
+          Continue as Guest
+        </button>
+
         {/* Status */}
         <div className="pt-4 border-t border-gray-800 text-center">
           {gdprAccepted ? (
             <div className="flex items-center justify-center gap-2 text-emerald-400 text-xs font-medium">
               <CheckCircle className="w-4 h-4" />
-              Consent recorded. Redirecting to GitHub...
+              Consent recorded. Redirecting...
             </div>
           ) : (
             <p className="text-xs text-gray-600">
