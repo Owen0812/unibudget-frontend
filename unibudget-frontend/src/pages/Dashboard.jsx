@@ -9,22 +9,20 @@ import {
   BrainCircuit, Loader2, Database, Sliders, Info
 } from "lucide-react"
 
-import SolvencyFanChart from "../components/SolvencyFanChart"
-import HealthScoreGauge from "../components/HealthScoreGauge"
-import ExpensePieChart from "../components/ExpensePieChart"
-import ScenarioManager from "../components/ScenarioManager"
-import { ThemeContext } from "../ThemeContext"
+import SolvencyFanChart   from "../components/SolvencyFanChart"
+import HealthScoreGauge   from "../components/HealthScoreGauge"
+import ExpensePieChart    from "../components/ExpensePieChart"
+import ScenarioManager    from "../components/ScenarioManager"
+import { ThemeContext }   from "../ThemeContext"
 
-// ===========================================================================
-// 🌟 纯手工打造的悬浮提示框组件 (Tooltip)
-// ===========================================================================
+// ---------------------------------------------------------------------------
+// Tooltip sub-component — shows explanatory text on hover
+// ---------------------------------------------------------------------------
 function Tooltip({ children, text }) {
-  if (!text) return children; 
-
+  if (!text) return children;
   return (
     <div className="group relative flex items-center cursor-help w-fit">
       {children}
-      {/* 统一的高级感 Indigo Tooltip */}
       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-60 p-3 text-[11px] text-indigo-50 bg-indigo-950/90 backdrop-blur-md border border-indigo-500/20 rounded-xl shadow-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 text-center leading-relaxed">
         {text}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-indigo-950/90"></div>
@@ -33,43 +31,39 @@ function Tooltip({ children, text }) {
   );
 }
 
-// ===========================================================================
-// 🌟 纯白高对比度版滑块组件（带手动输入框）
-// ===========================================================================
-// ===========================================================================
-// 🌟 完美适配黑夜模式的滑块组件 (ScenarioSlider)
-// ===========================================================================
+// ---------------------------------------------------------------------------
+// ScenarioSlider — colour-coded range input with manual number entry
+// Reads dark mode from ThemeContext to adapt track and label colours
+// ---------------------------------------------------------------------------
 function ScenarioSlider({ label, tooltip, value, unit, onChange, min = 0, max = 10000, step = 100, color = "indigo" }) {
-  // 🌟 连上全局主题大脑，自动感知黑夜模式！
   const { isDark } = useContext(ThemeContext);
 
-  // 颜色表也做适配，黑夜模式下文字颜色稍微调亮一点，看着更舒服
+  // Colour ramp — text and hex values adapt to dark/light mode
   const colorMap = {
-    teal: { text: isDark ? "text-teal-400" : "text-teal-600", hex: "#14b8a6" },
+    teal:    { text: isDark ? "text-teal-400"    : "text-teal-600",    hex: "#14b8a6" },
     emerald: { text: isDark ? "text-emerald-400" : "text-emerald-600", hex: "#10b981" },
-    rose: { text: isDark ? "text-rose-400" : "text-rose-600", hex: "#f43f5e" },
-    amber: { text: isDark ? "text-amber-400" : "text-amber-600", hex: "#f59e0b" },
-    purple: { text: isDark ? "text-purple-400" : "text-purple-600", hex: "#a855f7" },
-    indigo: { text: isDark ? "text-indigo-400" : "text-indigo-600", hex: "#6366f1" }
+    rose:    { text: isDark ? "text-rose-400"    : "text-rose-600",    hex: "#f43f5e" },
+    amber:   { text: isDark ? "text-amber-400"   : "text-amber-600",   hex: "#f59e0b" },
+    purple:  { text: isDark ? "text-purple-400"  : "text-purple-600",  hex: "#a855f7" },
+    indigo:  { text: isDark ? "text-indigo-400"  : "text-indigo-600",  hex: "#6366f1" },
   };
   const currentColor = colorMap[color] || colorMap.indigo;
-  const percentage = ((value - min) / (max - min)) * 100;
-  
-  // 🌟 核心：滑块未填充部分的白线，在黑夜模式下变成深灰色 (#374151)
+  const percentage   = ((value - min) / (max - min)) * 100;
+
+  // Unfilled track colour — dark gray in dark mode, light gray in light mode
   const trackColor = isDark ? "#374151" : "#e5e7eb";
 
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-2">
         <Tooltip text={tooltip}>
-          {/* 标题文字也做黑夜适配 */}
           <label className={`text-sm font-semibold flex items-center gap-1.5 cursor-help ${isDark ? "text-gray-300" : "text-gray-700"}`}>
             {label}
             {tooltip && <Info className="w-3.5 h-3.5 text-gray-400 hover:text-indigo-500 transition-colors" />}
           </label>
         </Tooltip>
-        
-        {/* 🌟 输入框背景适配：白天白底，黑夜深灰底 */}
+
+        {/* Manual number input — background adapts to dark/light mode */}
         <div className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 transition-colors duration-300 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"}`}>
           <span className="text-sm font-bold text-gray-400">{unit}</span>
           <input
@@ -79,11 +73,11 @@ function ScenarioSlider({ label, tooltip, value, unit, onChange, min = 0, max = 
           />
         </div>
       </div>
-      
+
+      {/* Range input — filled portion uses accent colour, unfilled uses trackColor */}
       <input
         type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        // 🌟 把上面算好的 trackColor 塞进渐变色里
         style={{ background: `linear-gradient(to right, ${currentColor.hex} 0%, ${currentColor.hex} ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)` }}
         className="w-full h-2 rounded-lg appearance-none cursor-pointer"
       />
@@ -92,101 +86,84 @@ function ScenarioSlider({ label, tooltip, value, unit, onChange, min = 0, max = 
 }
 
 // ---------------------------------------------------------------------------
-// 本地核心算法：全新优化的加权健康分数 (Health Score)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 本地核心算法：全新优化的“悬崖式”健康分数 (Health Score)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 本地核心算法：结合概率与生存周期的“平滑降级”健康分数 (Health Score)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 本地核心算法：对数加速降级算法 (Logarithmic Runway Decay)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 本地核心算法：幂函数断崖降级算法 (Power-Curve Cliff Decay)
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
-// 优化版：具备“安全保护区间”的断崖式算法
+// Health score algorithm — power-curve cliff decay with bankruptcy penalty
+// Factors: net cash flow runway (50%) + Monte Carlo bankruptcy risk (50%)
+// Returns integer 0–100
 // ---------------------------------------------------------------------------
 function calculateHealthScore(income, totalExpense, currentBalance, bankruptcyProbability) {
   const netFlow = income - totalExpense;
   let score = 100;
 
-  // 1. Runway 影响 (保持你的断崖手感)
-  let runwayFactor = 1; 
+  // Factor 1: Runway — penalises if savings will run out within 12 months
+  let runwayFactor = 1;
   if (netFlow < 0) {
-    const runway = Math.max(0, currentBalance / Math.abs(netFlow));
-    // 只有撑不到 12 个月时才开始扣分，且 0.4 次幂确保末尾暴跌
+    const runway           = Math.max(0, currentBalance / Math.abs(netFlow));
     const normalizedRunway = Math.min(runway, 12) / 12;
-    runwayFactor = Math.pow(normalizedRunway, 0.4); 
+    runwayFactor           = Math.pow(normalizedRunway, 0.4);
   }
 
-  // 2. 风险惩罚 (修正：加入 10% 的安全豁免区)
-  // 如果风险在 10% 以内，riskFactor 为 1（不扣分）
-  // 超过 10% 以后，才开始指数级扣分
+  // Factor 2: Risk — exponential penalty above 10% bankruptcy probability
   const effectiveRisk = Math.max(0, bankruptcyProbability - 10);
-  const riskFactor = Math.exp(-effectiveRisk / 40);
+  const riskFactor    = Math.exp(-effectiveRisk / 40);
 
-  // 3. 基础合成
   score = 100 * runwayFactor * riskFactor;
 
-  // 4. 完美状态特赦：如果你不亏钱，且风险极低，直接给 100
+  // Bonus: perfect score if cash-flow positive and risk is minimal
   if (netFlow >= 0 && bankruptcyProbability <= 12) {
     score = 100;
   }
 
-  // 5. 负债死亡螺旋 (保持严厉惩罚)
+  // Penalty: negative balance triggers debt spiral deduction
   if (currentBalance < 0) {
     score *= 0.6;
     const debtBurden = Math.abs(currentBalance) / 1000;
     score -= Math.pow(debtBurden, 1.2) * 10;
   }
 
-  // 6. 空白状态兜底
+  // Edge case: all inputs zero → return 0
   if (income <= 0 && totalExpense <= 0 && currentBalance <= 0) return 0;
 
   return Math.max(0, Math.min(100, Math.round(score)));
 }
+
+// ---------------------------------------------------------------------------
+// Mock Monte Carlo fallback — used when backend is offline
+// Generates P5/P50/P95 trajectories using simplified stochastic model
+// ---------------------------------------------------------------------------
 function mockSimulate(config) {
-  const { monthly_income, monthly_rent, essential_spending, discretionary_spending, current_balance } = config
-  const totalExpense = monthly_rent + essential_spending + discretionary_spending
-  const monthlyBalance = monthly_income - totalExpense
-  
-  // 💡 风险算法：融合 Current Balance
-  let baseRisk = 0
+  const { monthly_income, monthly_rent, essential_spending, discretionary_spending, current_balance } = config;
+  const totalExpense    = monthly_rent + essential_spending + discretionary_spending;
+  const monthlyBalance  = monthly_income - totalExpense;
+
+  // Bankruptcy probability based on cash runway
+  let baseRisk = 0;
   if (monthlyBalance < 0) {
-    const monthsLeft = current_balance / Math.abs(monthlyBalance)
-    if (monthsLeft < 12) {
-      baseRisk = 95 - (monthsLeft / 12) * 70
-    } else {
-      baseRisk = Math.max(5, 25 - (monthsLeft - 12))
-    }
+    const monthsLeft = current_balance / Math.abs(monthlyBalance);
+    baseRisk = monthsLeft < 12
+      ? 95 - (monthsLeft / 12) * 70
+      : Math.max(5, 25 - (monthsLeft - 12));
   } else {
-    const bufferMonths = totalExpense > 0 ? current_balance / totalExpense : 10
-    baseRisk = Math.max(1, 15 - bufferMonths)
+    const bufferMonths = totalExpense > 0 ? current_balance / totalExpense : 10;
+    baseRisk = Math.max(1, 15 - bufferMonths);
   }
 
-  // 🚨 修复点 1：控制破产概率的随机波动，只允许上下 5% 的微调，防止数值乱跳
-  const bankruptcyProbability = Math.max(0, Math.min(100, Math.round(baseRisk + (Math.random() - 0.5) * 10)))
+  // Add small random variation (±5%) to prevent static values
+  const bankruptcyProbability = Math.max(0, Math.min(100, Math.round(baseRisk + (Math.random() - 0.5) * 10)));
 
-  const p5 = [], p50 = [], p95 = []
-  let balance = current_balance || 0
+  const p5 = [], p50 = [], p95 = [];
+  let balance = current_balance || 0;
 
-  // 🚨 修复点 2：定义合理的金钱波动基数（比如每个月可能有相当于总支出 20% 的意外花销）
-  const monthlyShockBase = totalExpense * 0.20 + 100; 
+  // Monthly shock base — 20% of total expenses plus £100 buffer
+  const monthlyShockBase = totalExpense * 0.20 + 100;
 
   for (let i = 0; i < 12; i++) {
-    balance += monthlyBalance
-    p50.push(Math.round(balance))
-    
-    // 🚨 修复点 3：用平方根（Math.sqrt）让扇形喇叭口随着月份平滑优雅地展开
-    const uncertainty = monthlyShockBase * Math.sqrt(i + 1)
-    
-    // 悲观情况 (P5)：遇到意外多花钱
-    p5.push(Math.round(balance - uncertainty * 1.5))
-    // 乐观情况 (P95)：控制住了手，少花钱
-    p95.push(Math.round(balance + uncertainty * 0.8))
+    balance += monthlyBalance;
+    p50.push(Math.round(balance));
+
+    // Fan width widens with square root of time — realistic uncertainty growth
+    const uncertainty = monthlyShockBase * Math.sqrt(i + 1);
+    p5.push(Math.round(balance  - uncertainty * 1.5));
+    p95.push(Math.round(balance + uncertainty * 0.8));
   }
 
   return {
@@ -194,48 +171,55 @@ function mockSimulate(config) {
     health_score: calculateHealthScore(monthly_income, totalExpense, current_balance, bankruptcyProbability),
     days: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
     p5, p50, p95,
-  }
+  };
 }
 
+// ---------------------------------------------------------------------------
+// Advisory engine — rule-based contextual warnings
+// Four tiers: info / success / warning / danger
+// Inspired by firefly-iii/firefly-iii rule engine design
+// ---------------------------------------------------------------------------
 function getAdvisory(simData, config, displayCurrency) {
-  if (!simData) return { text: "Awaiting simulation results...", type: "info" }
-  const { bankruptcy_probability, p5 } = simData
-  const finalP5 = p5?.[p5.length - 1] ?? 0
-  const { discretionary_spending, monthly_income, current_balance } = config
+  if (!simData) return { text: "Awaiting simulation results...", type: "info" };
+
+  const { bankruptcy_probability, p5 } = simData;
+  const finalP5 = p5?.[p5.length - 1] ?? 0;
+  const { discretionary_spending, monthly_income, current_balance } = config;
 
   if (bankruptcy_probability >= 60 || finalP5 < 0) {
     return {
       type: "danger",
-      text: `Critical: ${bankruptcy_probability}% bankruptcy probability detected.\n` +
+      text:
+        `Critical: ${bankruptcy_probability}% bankruptcy probability detected.\n` +
         (current_balance < monthly_income
           ? `Your cash reserves are dangerously low. Reduce discretionary spending (${displayCurrency}${discretionary_spending.toLocaleString()}) immediately.`
           : "You are burning through your savings too fast. Consider cheaper housing or additional income sources."),
-    }
+    };
   }
   if (bankruptcy_probability >= 30) {
     return {
       type: "warning",
       text: `Warning: Elevated risk at ${bankruptcy_probability}%.\nKeep monitoring discretionary spending and maintain an emergency fund of at least 3 months' expenses.`,
-    }
+    };
   }
   if (finalP5 > current_balance && discretionary_spending < 300) {
     return {
       type: "success",
       text: "Financial position is growing stronger. Your positive cash flow is building your reserves. Consider allocating surplus to long-term savings.",
-    }
+    };
   }
   return {
     type: "info",
     text: "Financial outlook is stable. Your current balance provides a good buffer. Maintain your current spending habits.",
-  }
+  };
 }
 
 // ---------------------------------------------------------------------------
-// 主面板组件
+// Main Dashboard component
 // ---------------------------------------------------------------------------
 export default function DashboardPage() {
-  const { isDark, theme: currentTheme, currencySymbol } = useContext(ThemeContext)
-  const displayCurrency = currencySymbol || "£"
+  const { isDark, theme: currentTheme, currencySymbol } = useContext(ThemeContext);
+  const displayCurrency = currencySymbol || "£";
 
   const [config, setConfig] = useState({
     current_balance:        0,
@@ -243,48 +227,50 @@ export default function DashboardPage() {
     monthly_rent:           0,
     essential_spending:     0,
     discretionary_spending: 0,
-  })
+  });
 
-  const [simData, setSimData]     = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [simData, setSimData]     = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Re-run simulation 400ms after any config change
   useEffect(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     const timer = setTimeout(() => {
-      setSimData(mockSimulate(config))
-      setIsLoading(false)
-    }, 400) 
-    return () => clearTimeout(timer)
-  }, [config])
+      setSimData(mockSimulate(config));
+      setIsLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [config]);
 
-  const totalExpense = config.monthly_rent + config.essential_spending + config.discretionary_spending
-  const balance      = config.monthly_income - totalExpense
-  const advisory = getAdvisory(simData, config, displayCurrency)
+  const totalExpense = config.monthly_rent + config.essential_spending + config.discretionary_spending;
+  const balance      = config.monthly_income - totalExpense;
+  const advisory     = getAdvisory(simData, config, displayCurrency);
 
   const advisoryStyles = {
-    danger:  isDark ? "bg-rose-500/10 border-rose-500/30 text-rose-300" : "bg-rose-50 border-rose-200 text-rose-700",
-    warning: isDark ? "bg-amber-500/10 border-amber-500/30 text-amber-300" : "bg-amber-50 border-amber-200 text-amber-700",
+    danger:  isDark ? "bg-rose-500/10 border-rose-500/30 text-rose-300"     : "bg-rose-50 border-rose-200 text-rose-700",
+    warning: isDark ? "bg-amber-500/10 border-amber-500/30 text-amber-300"  : "bg-amber-50 border-amber-200 text-amber-700",
     success: isDark ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300" : "bg-emerald-50 border-emerald-200 text-emerald-700",
     info:    isDark ? `${currentTheme?.lightBg || 'bg-indigo-500/10'} border-gray-700 ${currentTheme?.text || 'text-indigo-400'}` : `bg-white border-gray-300 ${currentTheme?.text || 'text-indigo-600'}`,
-  }
+  };
 
   const advisoryIcons = {
     danger:  <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />,
     warning: <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />,
-    success: <TrendingUp className="w-5 h-5 shrink-0 mt-0.5" />,
-    info:    <BrainCircuit className="w-5 h-5 shrink-0 mt-0.5" />,
-  }
+    success: <TrendingUp    className="w-5 h-5 shrink-0 mt-0.5" />,
+    info:    <BrainCircuit  className="w-5 h-5 shrink-0 mt-0.5" />,
+  };
 
   const advisoryLabels = {
     danger:  "Critical Alert",
     warning: "Advisory Notice",
     success: "Looking Good",
     info:    "Analysis Result",
-  }
+  };
 
   return (
     <div className={`min-h-full p-6 md:p-8 space-y-6 transition-colors duration-300 ${isDark ? "bg-[#0b0f19] text-white" : "bg-gray-50 text-gray-900"}`}>
 
+      {/* BCS legal disclaimer */}
       <div className={`border-l-4 p-4 rounded-xl transition-colors duration-300 ${isDark ? "bg-amber-500/10 border-amber-500/20 border-l-amber-500" : "bg-amber-50 border-amber-200 border-l-amber-500"}`}>
         <p className={`text-xs font-bold mb-0.5 ${isDark ? "text-amber-400" : "text-amber-700"}`}>Legal Disclaimer</p>
         <p className={`text-xs leading-relaxed ${isDark ? "text-amber-300/60" : "text-amber-700/80"}`}>
@@ -293,6 +279,7 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* Page header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className={`p-3 rounded-xl border transition-colors duration-300 ${isDark ? `${currentTheme?.lightBg || 'bg-gray-800'} border-gray-700` : `bg-white border-gray-200 shadow-sm`}`}>
@@ -321,38 +308,40 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* 🌟 KPI 数据栏：包含了全新的加权分数说明！ */}
+      {/* KPI summary row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {
-            label: "Monthly Balance",
+            label:   "Monthly Balance",
             tooltip: "Your net income after rent, essential, and discretionary expenses are deducted.",
-            value: `${displayCurrency}${balance.toLocaleString()}`,
-            color: balance >= 0 ? (isDark ? "text-emerald-400" : "text-emerald-600") : (isDark ? "text-rose-400" : "text-rose-600"),
+            value:   `${displayCurrency}${balance.toLocaleString()}`,
+            color:   balance >= 0
+              ? (isDark ? "text-emerald-400" : "text-emerald-600")
+              : (isDark ? "text-rose-400"    : "text-rose-600"),
           },
           {
-            label: "Total Expenses",
+            label:   "Total Expenses",
             tooltip: "The total sum of your projected monthly outgoings.",
-            value: `${displayCurrency}${totalExpense.toLocaleString()}`,
-            color: isDark ? "text-rose-400" : "text-rose-600",
+            value:   `${displayCurrency}${totalExpense.toLocaleString()}`,
+            color:   isDark ? "text-rose-400" : "text-rose-600",
           },
           {
-            label: "Bankruptcy Risk",
+            label:   "Bankruptcy Risk",
             tooltip: "The probability of running out of money within 12 months, simulated via Monte Carlo engine.",
-            value: simData ? `${simData.bankruptcy_probability}%` : "--",
-            color: !simData                                   ? "text-gray-500"
-                 : simData.bankruptcy_probability >= 60       ? (isDark ? "text-rose-400" : "text-rose-600")
-                 : simData.bankruptcy_probability >= 30       ? (isDark ? "text-amber-400" : "text-amber-600")
-                 : (isDark ? "text-emerald-400" : "text-emerald-600"),
+            value:   simData ? `${simData.bankruptcy_probability}%` : "--",
+            color:   !simData                              ? "text-gray-500"
+                   : simData.bankruptcy_probability >= 60  ? (isDark ? "text-rose-400"    : "text-rose-600")
+                   : simData.bankruptcy_probability >= 30  ? (isDark ? "text-amber-400"   : "text-amber-600")
+                   :                                         (isDark ? "text-emerald-400" : "text-emerald-600"),
           },
           {
-            label: "Health Score",
+            label:   "Health Score",
             tooltip: "Scored out of 100: 50% based on your cash flow and financial runway, and 50% based on the Monte Carlo simulated bankruptcy risk.",
-            value: simData ? `${simData.health_score}/100` : "--",
-            color: !simData                   ? "text-gray-500"
-                 : simData.health_score >= 70 ? (isDark ? "text-emerald-400" : "text-emerald-600")
-                 : simData.health_score >= 40 ? (isDark ? "text-amber-400" : "text-amber-600")
-                 : (isDark ? "text-rose-400" : "text-rose-600"),
+            value:   simData ? `${simData.health_score}/100` : "--",
+            color:   !simData                  ? "text-gray-500"
+                   : simData.health_score >= 70 ? (isDark ? "text-emerald-400" : "text-emerald-600")
+                   : simData.health_score >= 40 ? (isDark ? "text-amber-400"   : "text-amber-600")
+                   :                              (isDark ? "text-rose-400"    : "text-rose-600"),
           },
         ].map((kpi) => (
           <div key={kpi.label} className={`border rounded-2xl p-5 shadow-xl transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
@@ -369,8 +358,10 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Main grid — controls left, visualisations right */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
 
+        {/* Left column: Scenario Builder + Scenario Manager */}
         <aside className="xl:col-span-4 space-y-6">
           <div className={`border rounded-2xl p-6 shadow-xl transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
             <div className="flex items-center justify-between mb-1">
@@ -384,23 +375,25 @@ export default function DashboardPage() {
               Drag sliders or enter values to forecast.
             </p>
 
-            <ScenarioSlider label="Current Balance" tooltip="Your current liquid savings or cash on hand." unit={displayCurrency} min={0} max={50000} step={500} value={config.current_balance} onChange={(v) => setConfig((p) => ({ ...p, current_balance: v }))} color="teal" />
-            <ScenarioSlider label="Monthly Income" tooltip="Your reliable monthly income after tax." unit={displayCurrency} min={0} max={15000} step={100} value={config.monthly_income} onChange={(v) => setConfig((p) => ({ ...p, monthly_income: v }))} color="emerald" />
-            <ScenarioSlider label="Rent & Bills" tooltip="Fixed living costs like rent, utilities, and subscriptions." unit={displayCurrency} min={0} max={5000} step={50} value={config.monthly_rent} onChange={(v) => setConfig((p) => ({ ...p, monthly_rent: v }))} color="rose" />
-            <ScenarioSlider label="Essential Spending" tooltip="Variable but necessary costs like groceries and transport." unit={displayCurrency} min={0} max={5000} step={50} value={config.essential_spending} onChange={(v) => setConfig((p) => ({ ...p, essential_spending: v }))} color="amber" />
-            <ScenarioSlider label="Discretionary Spending" tooltip="Non-essential spending like dining out, entertainment, and shopping." unit={displayCurrency} min={0} max={5000} step={50} value={config.discretionary_spending} onChange={(v) => setConfig((p) => ({ ...p, discretionary_spending: v }))} color="purple" />
+            <ScenarioSlider label="Current Balance"        tooltip="Your current liquid savings or cash on hand."                                  unit={displayCurrency} min={0} max={50000} step={500} value={config.current_balance}        onChange={(v) => setConfig((p) => ({ ...p, current_balance: v }))}        color="teal"    />
+            <ScenarioSlider label="Monthly Income"         tooltip="Your reliable monthly income after tax."                                        unit={displayCurrency} min={0} max={15000} step={100} value={config.monthly_income}         onChange={(v) => setConfig((p) => ({ ...p, monthly_income: v }))}         color="emerald" />
+            <ScenarioSlider label="Rent & Bills"           tooltip="Fixed living costs like rent, utilities, and subscriptions."                   unit={displayCurrency} min={0} max={5000}  step={50}  value={config.monthly_rent}           onChange={(v) => setConfig((p) => ({ ...p, monthly_rent: v }))}           color="rose"    />
+            <ScenarioSlider label="Essential Spending"     tooltip="Variable but necessary costs like groceries and transport."                    unit={displayCurrency} min={0} max={5000}  step={50}  value={config.essential_spending}     onChange={(v) => setConfig((p) => ({ ...p, essential_spending: v }))}     color="amber"   />
+            <ScenarioSlider label="Discretionary Spending" tooltip="Non-essential spending like dining out, entertainment, and shopping."          unit={displayCurrency} min={0} max={5000}  step={50}  value={config.discretionary_spending} onChange={(v) => setConfig((p) => ({ ...p, discretionary_spending: v }))} color="purple"  />
           </div>
 
           <ScenarioManager currentValues={config} onLoad={setConfig} />
         </aside>
 
+        {/* Right column: Health Score, Pie Chart, Fan Chart, Advisory */}
         <div className="xl:col-span-8 space-y-6">
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <HealthScoreGauge score={simData?.health_score ?? calculateHealthScore(config.monthly_income, totalExpense, config.current_balance, 50)} />
-            <ExpensePieChart data={{ rent: config.monthly_rent, food: config.essential_spending, transport: config.discretionary_spending }} />
+            <ExpensePieChart  data={{ rent: config.monthly_rent, food: config.essential_spending, transport: config.discretionary_spending }} />
           </div>
 
+          {/* Solvency Fan Chart with loading overlay */}
           <div className="relative">
             {isLoading && !simData && (
               <div className={`absolute inset-0 backdrop-blur-sm z-10 flex flex-col items-center justify-center gap-3 rounded-2xl ${isDark ? "bg-gray-900/80" : "bg-white/80"}`}>
@@ -419,18 +412,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          {/* Dynamic Advisory Insights */}
           <div className={`border rounded-2xl p-6 shadow-xl transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
             <div className="flex items-center gap-3 mb-4">
               <BrainCircuit className={`w-5 h-5 ${currentTheme?.text || 'text-indigo-500'}`} />
-            <Tooltip text="Scored out of 100: 50% based on your cash flow and financial runway, and 50% based on the Monte Carlo simulated bankruptcy risk.">
-          <div className="flex items-center gap-1.5 cursor-help">
-            <h3 className="text-base font-bold text-gray-900 dark:text-white">
-              Analysis Methodology
-            </h3>
-            <Info className="w-4 h-4 text-gray-400 hover:text-indigo-500 transition-colors" />
-          {/* 👇 就是这里！你刚才漏掉了这个闭合标签 */}
-          </div> 
-        </Tooltip>
+              <Tooltip text="Scored out of 100: 50% based on your cash flow and financial runway, and 50% based on the Monte Carlo simulated bankruptcy risk.">
+                <div className="flex items-center gap-1.5 cursor-help">
+                  <h3 className="text-base font-bold">Analysis Methodology</h3>
+                  <Info className="w-4 h-4 text-gray-400 hover:text-indigo-500 transition-colors" />
+                </div>
+              </Tooltip>
             </div>
             <div className={`flex items-start gap-3 p-4 rounded-xl border text-sm leading-relaxed transition-colors duration-300 ${advisoryStyles[advisory.type]}`}>
               {advisoryIcons[advisory.type]}
@@ -444,5 +435,5 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
