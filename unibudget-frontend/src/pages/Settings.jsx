@@ -1,29 +1,19 @@
 // src/pages/Settings.jsx
 // User Settings and Compliance Centre
-// Features: Account management, GDPR data controls, Notifications, and Interactive Theme Colors.
+// Features: dark mode toggle, accent colour picker, currency selector,
+// account management, and GDPR data controls (Art.17 + Art.20)
+// All theme state consumed from and written back to global ThemeContext
 
-import React, { useState, useContext, createContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   User, ShieldCheck, Palette,
-  Trash2, Download, LogOut, ChevronRight, CheckCircle, Coins
+  Trash2, Download, LogOut, ChevronRight, CheckCircle
 } from "lucide-react";
-
-// ============================================================================
-// ⚠️⚠️⚠️ 极其重要的本地使用步骤 ⚠️⚠️⚠️
-// 为了实现您要求的“全站联动变色与货币同步”，并在当前预览环境中不报错，请执行以下步骤：
-//
-// 1. 在您的本地代码中，请取消下面这行的注释（去掉行首的 // ），引入您真正的全局配置：
 import { ThemeContext, THEMES } from "../ThemeContext";
-//
-// 2. 然后，请删除下面的两个“临时预览区块”。
-// 3. 将 `export function SettingsPage` 改回 `export default function SettingsPage`
-// ============================================================================
-
-// ⬇️ 临时预览区块一：模拟主题数据 (在本地 VS Code 中请将这段完全删除) ⬇️
-// ⬆️ 临时预览区块一结束 ⬆️
 
 // ---------------------------------------------------------------------------
-// 子组件 (已升级：全面支持白天/黑夜模式和全局主题色)
+// Sub-components
+// ---------------------------------------------------------------------------
 
 function SettingsSection({ icon: Icon, title, description, children, theme, isDark }) {
   return (
@@ -77,8 +67,8 @@ function DangerButton({ icon: Icon, label, description, buttonLabel, onClick, is
       <button
         onClick={onClick}
         className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-all duration-200 shrink-0 ${
-          isDark 
-            ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white" 
+          isDark
+            ? "bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white"
             : "bg-white border-rose-200 text-rose-600 hover:bg-rose-500 hover:text-white shadow-sm"
         }`}
       >
@@ -90,22 +80,21 @@ function DangerButton({ icon: Icon, label, description, buttonLabel, onClick, is
 }
 
 // ---------------------------------------------------------------------------
-// 主设置页面组件 (⚠️ 本地使用时，请将这里改为 export default function SettingsPage)
+// Main Settings Page
 // ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  // 🌟 魔法在这里：从全局接管 isDark, theme, currency 等状态
-  const { 
-    isDark, setIsDark, 
-    themeKey, setThemeKey, 
-    theme: currentTheme, 
-    currency, setCurrency 
+  // Read and write global theme, dark mode, and currency state
+  const {
+    isDark, setIsDark,
+    themeKey, setThemeKey,
+    theme: currentTheme,
+    currency, setCurrency
   } = useContext(ThemeContext);
 
   const [displayName, setDisplayName] = useState("Owen Lin");
   const [email] = useState("sgylin22@liverpool.ac.uk");
   const [editingName, setEditingName] = useState(false);
-  const [nameSaved, setNameSaved] = useState(false);
-
+  const [nameSaved, setNameSaved]     = useState(false);
   const [exportFlash, setExportFlash] = useState(false);
   const [deleteFlash, setDeleteFlash] = useState(false);
 
@@ -115,6 +104,7 @@ export default function SettingsPage() {
     setTimeout(() => setNameSaved(false), 2000);
   };
 
+  // GDPR Art.20 — export all local data as JSON download
   const handleExportData = () => {
     const payload = {
       exportedAt: new Date().toISOString(),
@@ -133,6 +123,7 @@ export default function SettingsPage() {
     setTimeout(() => setExportFlash(false), 2000);
   };
 
+  // GDPR Art.17 — erase all local data and redirect to login
   const handleDeleteAccount = () => {
     if (window.confirm("This will permanently delete all your local data. Are you sure?")) {
       localStorage.clear();
@@ -146,7 +137,7 @@ export default function SettingsPage() {
     <div className={`min-h-full transition-colors duration-300 ${isDark ? "bg-[#0b0f19]" : "bg-gray-50"}`}>
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
 
-        {/* 页面头部 */}
+        {/* Page header */}
         <div>
           <h2 className={`text-3xl font-extrabold ${isDark ? "text-white" : "text-gray-900"}`}>Settings</h2>
           <p className="text-gray-500 text-sm mt-1">
@@ -154,7 +145,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* 1. 外观设置 (包含全站联动的 黑夜模式、主题色、货币) */}
+        {/* 1. Appearance — dark mode, accent colour, currency */}
         <SettingsSection
           icon={Palette}
           title="Appearance"
@@ -162,7 +153,7 @@ export default function SettingsPage() {
           theme={currentTheme}
           isDark={isDark}
         >
-          {/* 白天/黑夜模式切换器 */}
+          {/* Dark mode toggle */}
           <ToggleRow
             label="Dark Mode"
             description="Toggle between light and dark themes."
@@ -171,8 +162,8 @@ export default function SettingsPage() {
             theme={currentTheme}
             isDark={isDark}
           />
-          
-          {/* 主题颜色选择器 */}
+
+          {/* Accent colour picker */}
           <div className={`flex items-center justify-between p-3 border rounded-xl transition-colors duration-300 ${isDark ? "bg-gray-950 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
             <div>
               <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>Accent Color</p>
@@ -193,7 +184,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* 货币选择器 */}
+          {/* Currency selector */}
           <div className={`flex items-center justify-between p-3 border rounded-xl transition-colors duration-300 ${isDark ? "bg-gray-950 border-gray-800" : "bg-gray-50 border-gray-200"}`}>
             <div>
               <p className={`text-sm font-semibold ${isDark ? "text-gray-300" : "text-gray-700"}`}>Base Currency</p>
@@ -203,9 +194,7 @@ export default function SettingsPage() {
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               className={`border rounded-xl px-3 py-2 text-sm focus:outline-none transition-colors duration-300 ${
-                isDark 
-                  ? "bg-gray-800 border-gray-700 text-white" 
-                  : "bg-white border-gray-300 text-gray-900"
+                isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-300 text-gray-900"
               }`}
             >
               <option value="GBP">£ GBP — British Pound</option>
@@ -215,7 +204,7 @@ export default function SettingsPage() {
           </div>
         </SettingsSection>
 
-        {/* 2. 账户管理 */}
+        {/* 2. Account */}
         <SettingsSection
           icon={User}
           title="Account"
@@ -273,7 +262,7 @@ export default function SettingsPage() {
           </button>
         </SettingsSection>
 
-        {/* 3. 隐私与 GDPR */}
+        {/* 3. Privacy & GDPR */}
         <SettingsSection
           icon={ShieldCheck}
           title="Privacy & GDPR Compliance"
@@ -297,6 +286,7 @@ export default function SettingsPage() {
             ))}
           </div>
 
+          {/* GDPR Art.20 — data export */}
           <DangerButton
             icon={Download}
             label="Export My Data"
@@ -311,6 +301,7 @@ export default function SettingsPage() {
             </p>
           )}
 
+          {/* GDPR Art.17 — account deletion */}
           <DangerButton
             icon={Trash2}
             label="Delete My Account"
@@ -330,7 +321,8 @@ export default function SettingsPage() {
             Results are probabilistic projections, not professional financial advice.
           </p>
         </SettingsSection>
-        {/* 4. 关于项目 */}
+
+        {/* 4. About */}
         <div className={`border rounded-2xl p-6 text-xs space-y-1.5 transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800 text-gray-600" : "bg-white border-gray-200 text-gray-500"}`}>
           <p className={`font-bold mb-3 text-sm ${isDark ? "text-gray-400" : "text-gray-700"}`}>About UniBudget Lab</p>
           <p><span className={isDark ? "text-gray-500" : "text-gray-400"}>Version:</span> 2.1.0</p>

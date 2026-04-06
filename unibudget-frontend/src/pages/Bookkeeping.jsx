@@ -2,8 +2,9 @@
 // Transaction ledger — CRUD with shared localStorage data layer
 // Changes here automatically propagate to Dashboard Scenario Builder
 // Double-entry ledger design inspired by firefly-iii/firefly-iii
+// Dark mode and currency symbol consumed from global ThemeContext
 
-import { useState, useEffect, useRef, useContext } from "react" // 🌟 新增 useContext
+import { useState, useEffect, useRef, useContext } from "react"
 import { PlusCircle, Trash2, Search, Filter, RefreshCw, CheckCircle2 } from "lucide-react"
 import {
   loadTransactions,
@@ -11,8 +12,6 @@ import {
   aggregateToSliderValues,
   syncTransactionsToBackend,
 } from "../data/transactionStore"
-
-// 🌟 引入主题大脑
 import { ThemeContext } from "../ThemeContext"
 
 const CATEGORIES = ["Income", "Housing", "Food", "Transport", "Utilities", "Leisure", "Other"]
@@ -32,7 +31,7 @@ const EMPTY_FORM = {
 }
 
 export default function Bookkeeping() {
-  // 🌟 从全局获取黑夜模式和货币符号
+  // Consume dark mode, accent theme, and currency symbol from global context
   const { isDark, theme, currencySymbol } = useContext(ThemeContext)
 
   const [transactions, setTransactions] = useState(loadTransactions)
@@ -49,7 +48,7 @@ export default function Bookkeeping() {
     syncTransactionsToBackend(transactions)
   }, [])
 
-  // Persist to localStorage on change, skip first render
+  // Persist to localStorage on change, skip first render to avoid flash
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false
@@ -113,13 +112,11 @@ export default function Bookkeeping() {
   const preview      = aggregateToSliderValues(transactions)
 
   return (
-    // 🌟 背景色适配
     <main className={`min-h-full max-w-6xl mx-auto px-6 py-8 space-y-6 transition-colors duration-300 ${isDark ? "bg-[#0b0f19]" : "bg-gray-50"}`}>
 
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          {/* 🌟 文字颜色适配 */}
           <h2 className={`text-3xl font-extrabold ${isDark ? "text-white" : "text-gray-900"}`}>Bookkeeping</h2>
           <p className="text-gray-500 text-sm mt-1">
             Your real transactions automatically set the Scenario Builder baseline.
@@ -128,8 +125,8 @@ export default function Bookkeeping() {
         <button
           onClick={handleReset}
           className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors ${
-            isDark 
-              ? "text-gray-400 hover:text-rose-400 bg-gray-900 border border-gray-800 hover:border-rose-900" 
+            isDark
+              ? "text-gray-400 hover:text-rose-400 bg-gray-900 border border-gray-800 hover:border-rose-900"
               : "text-gray-600 hover:text-rose-600 bg-white border border-gray-200 hover:bg-rose-50 hover:border-rose-200 shadow-sm"
           }`}
         >
@@ -152,7 +149,7 @@ export default function Bookkeeping() {
         ))}
       </div>
 
-      {/* Dashboard sync banner */}
+      {/* Dashboard sync banner — only shown when transactions exist */}
       {transactions.length > 0 && (
         <div className={`border rounded-2xl px-5 py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors duration-300 ${
           isDark ? "bg-indigo-500/10 border-indigo-500/20" : "bg-indigo-50 border-indigo-200"
@@ -185,6 +182,7 @@ export default function Bookkeeping() {
         </h3>
 
         <div className="flex flex-col lg:flex-row gap-3">
+
           {/* Date */}
           <input
             type={form.date ? "date" : "text"}
@@ -233,7 +231,7 @@ export default function Bookkeeping() {
             } ${form.type ? (isDark ? "text-white" : "text-gray-900") : (isDark ? "text-gray-600" : "text-gray-400")}`}
           >
             <option value="" disabled hidden>Type</option>
-            <option value="income" className={isDark ? "text-white" : "text-gray-900"}>Income</option>
+            <option value="income"  className={isDark ? "text-white" : "text-gray-900"}>Income</option>
             <option value="expense" className={isDark ? "text-white" : "text-gray-900"}>Expense</option>
           </select>
 
