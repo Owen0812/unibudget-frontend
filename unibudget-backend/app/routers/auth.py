@@ -35,7 +35,7 @@ def login_github():
 async def auth_github_callback(code: str):
     """
     OAuth 2.0 Step 2: GitHub redirects back here with a temporary code.
-    Exchange code for access token, then fetch user profile.
+    Exchange code for access token, then fetch user profile and primary email.
     """
     async with httpx.AsyncClient() as client:
 
@@ -64,9 +64,17 @@ async def auth_github_callback(code: str):
         username  = user_info.get("login", "GitHub User")
         avatar    = user_info.get("avatar_url", "")
 
+        # Fetch GitHub primary email
+        email_response = await client.get(
+            "https://api.github.com/user/emails",
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+        emails  = email_response.json()
+        primary = next((e["email"] for e in emails if e.get("primary")), "")
+
     # OAuth success — redirect to frontend dashboard with user info
     return RedirectResponse(
-        f"{FRONTEND_URL}/dashboard?user={username}&avatar={avatar}&status=success"
+        f"{FRONTEND_URL}/dashboard?user={username}&avatar={avatar}&email={primary}&status=success"
     )
 
 

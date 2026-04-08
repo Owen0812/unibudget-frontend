@@ -26,15 +26,29 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
-  const [isDark, setIsDark] = useState(false);
-  const [themeKey, setThemeKey] = useState("indigo");
-  const [currency, setCurrency] = useState("GBP");
+  const [isDark, setIsDark]       = useState(false);
+  const [themeKey, setThemeKey]   = useState("indigo");
+  const [currency, setCurrency]   = useState("GBP");
 
-  const currencySymbols = {
-    GBP: "£",
-    EUR: "€",
-    USD: "$"
-  };
+  // Handle GitHub OAuth callback — pick up ?user=xxx&status=success from URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const user      = urlParams.get("user");
+    const avatar    = urlParams.get("avatar");
+    const email     = urlParams.get("email");
+    const status    = urlParams.get("status");
+
+    if (status === "success" && user) {
+      // Store user info and mark GDPR as accepted
+      sessionStorage.setItem("gdpr_accepted", "true");
+      sessionStorage.setItem("github_user",   user);
+      sessionStorage.setItem("github_avatar", avatar || "");
+      sessionStorage.setItem("github_email",  email  || "");
+
+      // Clean up URL — remove query params
+      window.history.replaceState({}, document.title, "/dashboard");
+    }
+  }, []);
 
   // Sync dark mode class on document root for Tailwind dark: variants
   useEffect(() => {
@@ -72,10 +86,10 @@ export default function App() {
                 <Sidebar />
                 <div className="flex-1 overflow-y-auto">
                   <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/"            element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/dashboard"   element={<Dashboard />}   />
                     <Route path="/bookkeeping" element={<Bookkeeping />} />
-                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/settings"    element={<Settings />}    />
                   </Routes>
                 </div>
               </ProtectedRoute>

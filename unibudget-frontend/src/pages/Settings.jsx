@@ -83,7 +83,6 @@ function DangerButton({ icon: Icon, label, description, buttonLabel, onClick, is
 // Main Settings Page
 // ---------------------------------------------------------------------------
 export default function SettingsPage() {
-  // Read and write global theme, dark mode, and currency state
   const {
     isDark, setIsDark,
     themeKey, setThemeKey,
@@ -91,8 +90,14 @@ export default function SettingsPage() {
     currency, setCurrency
   } = useContext(ThemeContext);
 
-  const [displayName, setDisplayName] = useState("Owen Lin");
-  const [email] = useState("sgylin22@liverpool.ac.uk");
+  // Read user info from sessionStorage — populated by GitHub OAuth callback
+  const [displayName, setDisplayName] = useState(
+    sessionStorage.getItem("github_user") || "Guest"
+  );
+  const [email] = useState(
+    sessionStorage.getItem("github_email") || "No email linked"
+  );
+
   const [editingName, setEditingName] = useState(false);
   const [nameSaved, setNameSaved]     = useState(false);
   const [exportFlash, setExportFlash] = useState(false);
@@ -175,7 +180,9 @@ export default function SettingsPage() {
                   key={key}
                   onClick={() => setThemeKey(key)}
                   className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 ${THEMES[key].bg} ${
-                    themeKey === key ? `ring-2 ring-offset-2 ${isDark ? "ring-offset-gray-950" : "ring-offset-gray-50"} ${THEMES[key].border || 'ring-gray-400'}` : "opacity-80"
+                    themeKey === key
+                      ? `ring-2 ring-offset-2 ${isDark ? "ring-offset-gray-950" : "ring-offset-gray-50"} ${THEMES[key].border || 'ring-gray-400'}`
+                      : "opacity-80"
                   }`}
                 >
                   {themeKey === key && <CheckCircle className="w-4 h-4 text-white" />}
@@ -204,7 +211,7 @@ export default function SettingsPage() {
           </div>
         </SettingsSection>
 
-        {/* 2. Account */}
+        {/* 2. Account — populated from GitHub OAuth sessionStorage */}
         <SettingsSection
           icon={User}
           title="Account"
@@ -220,7 +227,7 @@ export default function SettingsPage() {
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className={`flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors duration-300 ${currentTheme?.border || 'border-indigo-500'} focus:border-2 ${
+                  className={`flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none transition-colors duration-300 ${
                     isDark ? "bg-gray-950 border-gray-800 text-white" : "bg-white border-gray-300 text-gray-900 shadow-sm"
                   }`}
                 />
