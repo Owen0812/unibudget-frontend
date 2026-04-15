@@ -11,11 +11,11 @@ import {
   BrainCircuit, Loader2, Database, Sliders, Info
 } from "lucide-react"
 
-import SolvencyFanChart from "../components/SolvencyFanChart"
-import HealthScoreGauge from "../components/HealthScoreGauge"
-import ExpensePieChart from "../components/ExpensePieChart"
-import ScenarioManager from "../components/ScenarioManager"
-import { ThemeContext } from "../ThemeContext"
+import SolvencyFanChart   from "../components/SolvencyFanChart"
+import HealthScoreGauge   from "../components/HealthScoreGauge"
+import ExpensePieChart    from "../components/ExpensePieChart"
+import ScenarioManager    from "../components/ScenarioManager"
+import { ThemeContext }   from "../ThemeContext"
 
 // ===========================================================================
 // 🌟 悬浮提示框组件 (Tooltip)
@@ -208,8 +208,8 @@ export default function DashboardPage() {
     discretionary_spending: 0,
   })
 
-  const [simData, setSimData]     = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [simData, setSimData]     = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setIsLoading(true)
