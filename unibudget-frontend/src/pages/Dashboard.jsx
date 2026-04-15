@@ -14,6 +14,7 @@ import HealthScoreGauge   from "../components/HealthScoreGauge"
 import ExpensePieChart    from "../components/ExpensePieChart"
 import ScenarioManager    from "../components/ScenarioManager"
 import { ThemeContext }   from "../ThemeContext"
+import { loadTransactions, aggregateToSliderValues } from "../data/transactionStore"
 
 // ---------------------------------------------------------------------------
 // Tooltip sub-component — shows explanatory text on hover
@@ -231,6 +232,36 @@ export default function DashboardPage() {
 
   const [simData, setSimData]     = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Sync sliders from Bookkeeping localStorage data.
+  // Runs once on mount and re-runs whenever Bookkeeping dispatches a "focus"
+  // event (triggered after every add / delete transaction).
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const syncFromBookkeeping = () => {
+      const transactions = loadTransactions();
+      if (transactions.length === 0) return;
+
+      const agg = aggregateToSliderValues(transactions);
+
+      setConfig(prev => ({
+        ...prev,
+        monthly_income:         agg.income    > 0 ? agg.income    : prev.monthly_income,
+        monthly_rent:           agg.rent      > 0 ? agg.rent      : prev.monthly_rent,
+        essential_spending:     agg.food      > 0 ? agg.food      : prev.essential_spending,
+        discretionary_spending: agg.transport > 0 ? agg.transport : prev.discretionary_spending,
+        // current_balance is intentionally left to the user — not derived from transactions
+      }));
+    };
+
+    // Sync immediately on Dashboard mount
+    syncFromBookkeeping();
+
+    // Re-sync whenever Bookkeeping fires the "focus" event after a transaction change
+    window.addEventListener("focus", syncFromBookkeeping);
+    return () => window.removeEventListener("focus", syncFromBookkeeping);
+  }, []);
 
   // Re-run simulation 400ms after any config change
   useEffect(() => {
