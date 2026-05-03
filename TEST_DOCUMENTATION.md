@@ -92,22 +92,22 @@ Functional tests provide direct evidence that each named project objective is me
 
 | ID | Test | Method | Target | Result | Status |
 |----|------|--------|--------|--------|--------|
-| PT-01 | Monte Carlo end-to-end response time (`POST /api/simulate`) | Chrome DevTools Network panel, 5 slider interactions, average taken | < 2,000 ms | **~2,740 ms average** in production (Render free tier); **~77 ms** pure NumPy computation on local machine | ⚠️ Exceeded in production — see note below |
+| PT-01 | Monte Carlo end-to-end response time (`POST /api/simulate`) | Chrome DevTools Network panel, 5 slider interactions, average taken | < 2,000 ms | **2,674 ms average** in production (Render free tier); **77 ms** pure NumPy computation on local machine | ⚠️ Exceeded in production — see note below |
 | PT-02 | Render free-tier cold-start latency | Manual timing after 15+ min idle | No target (known limitation) | **~30 seconds** (first request after idle period) | ⚠️ Known Limitation |
-| PT-03 | Page first-load time (production build) | Chrome DevTools Network panel, cache disabled, 3 runs, average taken | < 3,000 ms | To be filled after DevTools measurement | ⏳ Pending |
+| PT-03 | Page first-load time (production build) | Chrome DevTools Network panel, cache disabled, 3 runs, average taken | < 3,000 ms | **93 ms** (all 3 runs identical; HTML 0.7 kB, JS 158 kB, CSS 6.2 kB served via Vercel CDN) | ✅ Pass |
 
 **PT-01 Detail — individual run times (production, Chrome DevTools):**
 
 | Run | Time (ms) |
 |-----|-----------|
-| 1   | 2,740     |
-| 2   | 2,570     |
-| 3   | 3,230     |
-| 4   | 2,870     |
-| 5   | 2,690     |
-| **Average** | **2,820** |
+| 1   | 2,610     |
+| 2   | 2,990     |
+| 3   | 2,660     |
+| 4   | 2,450     |
+| 5   | 2,660     |
+| **Average** | **2,674** |
 
-**PT-01 Analysis:** The 2,820 ms production average exceeds the 2-second target. This is not caused by the NumPy algorithm itself — direct benchmarking on a local machine confirms the pure computation takes only **77 ms** (well within target). The production overhead breaks down as follows:
+**PT-01 Analysis:** The 2,674 ms production average exceeds the 2-second target. This is not caused by the NumPy algorithm itself — direct benchmarking on a local machine confirms the pure computation takes only **77 ms** (well within target). The production overhead breaks down as follows:
 
 - **Render free-tier CPU constraint** — the shared compute instance is significantly slower than a development machine, adding an estimated 500–800 ms of computation overhead
 - **JSON serialisation** — the response payload contains three arrays of 365 data points each (P5/P50/P95 trajectories), adding serialisation and transfer time
@@ -244,5 +244,5 @@ Participants rated each statement from 1 (strongly disagree) to 5 (strongly agre
 | OBJ-06 | Chart.js P5 / P50 / P95 fan chart | FT-10 | ✅ Satisfied |
 | OBJ-07 | NumPy-vectorised Monte Carlo simulation | FT-08, PT-01 | ⚠️ Partially Satisfied — vectorisation implemented and verified (PT-01: 76.2 ms); distribution model uses uniform sampling rather than Gaussian/Poisson as originally specified (see BUG-07) |
 | OBJ-08 | Bankruptcy warning advisory engine | FT-09, BT-06 | ✅ Satisfied |
-| OBJ-09 | Simulation response time < 2 seconds | PT-01 | ⚠️ Partially Satisfied — NumPy computation takes 77 ms locally (within target); production end-to-end averages 2,820 ms due to Render free-tier CPU constraints and large response payload, not algorithm deficiency (see PT-01 analysis) |
+| OBJ-09 | Simulation response time < 2 seconds | PT-01 | ⚠️ Partially Satisfied — NumPy computation takes 77 ms locally (within target); production end-to-end averages 2,674 ms due to Render free-tier CPU constraints and large response payload, not algorithm deficiency (see PT-01 analysis) |
 | OBJ-10 | Chi-squared validation of RNG distribution | SV-01 | ✅ Satisfied — p-value 0.6293 |
