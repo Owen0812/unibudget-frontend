@@ -82,7 +82,7 @@ Functional tests provide direct evidence that each named project objective is me
 
 ### Method
 
-**PT-01:** End-to-end Monte Carlo response time was measured using Chrome DevTools Network panel. With the backend running locally via `uvicorn`, the Dashboard was opened and a slider was dragged to trigger a `POST /api/simulate` request. The response time (from request sent to response received) was recorded for 5 consecutive slider interactions, and the average taken. This captures the full latency a user experiences: FastAPI routing + NumPy computation + JSON serialisation + HTTP response.
+**PT-01:** End-to-end Monte Carlo response time was measured using Chrome DevTools Network panel against the live production backend deployed on Render. The Dashboard was opened at `https://unibudget-lab.vercel.app` and a slider was dragged to trigger a `POST /api/simulate` request. The response time (from request sent to response received) was recorded for 5 consecutive slider interactions, and the average taken. This captures the full latency a real user experiences: FastAPI routing + NumPy computation + JSON serialisation + HTTP response over the public internet.
 
 **PT-02:** The Render free-tier cold-start delay was measured by leaving the backend idle for 15+ minutes and then sending a request. This is a platform constraint, not a code issue.
 
