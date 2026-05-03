@@ -8,7 +8,7 @@
 
 All functional and boundary tests use manually constructed data rather than real bank records. This is intentional: the system does not connect to any live banking API, and all financial data is entered manually by the user. Each test case uses the minimum dataset necessary to verify the target behaviour — typically 3–5 transactions for functional tests.
 
-Usability testing uses real external participants (5 student testers) operating the live deployed system, not a controlled dataset.
+Usability testing uses real external participants (6 student testers) operating the live deployed system, not a controlled dataset.
 
 ### Test Environment
 
