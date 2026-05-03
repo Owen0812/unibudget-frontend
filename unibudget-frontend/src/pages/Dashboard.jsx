@@ -264,13 +264,77 @@ export default function DashboardPage() {
   }, []);
 
   // Re-run simulation 400ms after any config change
+  // Tries backend /api/simulate first; falls back to mockSimulate if unavailable
   useEffect(() => {
     setIsLoading(true);
-    const timer = setTimeout(() => {
-      setSimData(mockSimulate(config));
-      setIsLoading(false);
+    const controller = new AbortController();
+
+    const timer = setTimeout(async () => {
+      try {
+        const API_BASE = "https://unibudget-backend.onrender.com";
+        const payload = {
+          initialBalance:  config.current_balance,
+          daysToSimulate:  365,
+          expenses: [
+            {
+              type:        "fixed",
+              amount:      config.monthly_rent,
+              dayOfCharge: 1,
+              frequency:   "monthly",
+            },
+            {
+              type:      "variable",
+              min:       config.essential_spending * 0.8 / 30,
+              max:       config.essential_spending * 1.2 / 30,
+              frequency: "daily",
+            },
+            {
+              type:               "sporadic",
+              min:                config.discretionary_spending * 0.5 / 30,
+              max:                config.discretionary_spending * 1.5 / 30,
+              probabilityPerDay:  0.6,
+            },
+          ],
+        };
+
+        const res = await fetch(`${API_BASE}/api/simulate`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify(payload),
+          signal:  controller.signal,
+        });
+
+        if (!res.ok) throw new Error("Backend error");
+
+        const data = await res.json();
+        // Backend returns daily arrays (365 points); downsample to 12 monthly labels
+        const monthLabels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const pick = (arr) => monthLabels.map((_, i) => arr[Math.floor((i + 1) * 365 / 12) - 1]);
+
+        setSimData({
+          bankruptcy_probability: data.bankruptcy_probability,
+          health_score:           data.health_score,
+          days:                   monthLabels,
+          p5:                     pick(data.chart_data.p5),
+          p50:                    pick(data.chart_data.p50),
+          p95:                    pick(data.chart_data.p95),
+        });
+      } catch {
+        // Backend offline or request aborted — fall back to local mock
+        if (!controller.signal.aborted) {
+          setSimData(mockSimulate(config));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
     }, 400);
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [config]);
 
   const totalExpense = config.monthly_rent + config.essential_spending + config.discretionary_spending;
