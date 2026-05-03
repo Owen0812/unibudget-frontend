@@ -243,7 +243,7 @@ Participants rated each statement from 1 (strongly disagree) to 5 (strongly agre
 | OBJ-04 | Scenario builder with interactive sliders | FT-08, FT-11, FT-12 | ✅ Satisfied |
 | OBJ-05 | SUS usability evaluation with real users | Section 6 | ✅ Satisfied — average SUS score 86.7 (6 participants; target ≥ 68; "Excellent" grade) |
 | OBJ-06 | Chart.js P5 / P50 / P95 fan chart | FT-10 | ✅ Satisfied |
-| OBJ-07 | NumPy-vectorised Monte Carlo simulation | FT-08, PT-01 | ⚠️ Partially Satisfied — vectorisation implemented and verified (PT-01: 76.2 ms); distribution model uses uniform sampling rather than Gaussian/Poisson as originally specified (see BUG-07) |
+| OBJ-07 | NumPy-vectorised Monte Carlo simulation | FT-08, PT-01 | ⚠️ Partially Satisfied — vectorisation implemented and verified (local benchmark: 77 ms for 10,000 iterations); distribution model uses uniform sampling rather than Gaussian/Poisson as originally specified (see BUG-07) |
 | OBJ-08 | Bankruptcy warning advisory engine | FT-09, BT-06 | ✅ Satisfied |
 | OBJ-09 | Simulation response time < 2 seconds | PT-01 | ⚠️ Partially Satisfied — NumPy computation takes 77 ms locally (within target); production end-to-end averages 2,674 ms due to Render free-tier CPU constraints and large response payload, not algorithm deficiency (see PT-01 analysis) |
 | OBJ-10 | Chi-squared validation of RNG distribution | SV-01 | ✅ Satisfied — p-value 0.6293 |
