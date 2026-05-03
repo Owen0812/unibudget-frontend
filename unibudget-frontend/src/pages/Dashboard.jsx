@@ -277,22 +277,28 @@ export default function DashboardPage() {
           daysToSimulate:  365,
           expenses: [
             {
+              id:          "rent",
+              name:        "Rent & Bills",
               type:        "fixed",
               amount:      config.monthly_rent,
               dayOfCharge: 1,
               frequency:   "monthly",
             },
             {
+              id:        "essential",
+              name:      "Essential Spending",
               type:      "variable",
               min:       config.essential_spending * 0.8 / 30,
               max:       config.essential_spending * 1.2 / 30,
               frequency: "daily",
             },
             {
-              type:               "sporadic",
-              min:                config.discretionary_spending * 0.5 / 30,
-              max:                config.discretionary_spending * 1.5 / 30,
-              probabilityPerDay:  0.6,
+              id:                "discretionary",
+              name:              "Discretionary Spending",
+              type:              "sporadic",
+              min:               config.discretionary_spending * 0.5 / 30,
+              max:               config.discretionary_spending * 1.5 / 30,
+              probabilityPerDay: 0.6,
             },
           ],
         };
