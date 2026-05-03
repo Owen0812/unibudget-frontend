@@ -266,6 +266,13 @@ export default function DashboardPage() {
   // Re-run simulation 400ms after any config change
   // Tries backend /api/simulate first; falls back to mockSimulate if unavailable
   useEffect(() => {
+    const allZero = Object.values(config).every((v) => v === 0);
+    if (allZero) {
+      setSimData(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     const controller = new AbortController();
 
