@@ -80,8 +80,8 @@ class ScenarioOut(ScenarioCreate):
 
 # --- Monte Carlo Simulation Engine ---
 class ExpenseItem(BaseModel):
-    id:               str
-    name:             str
+    id:               str = ""
+    name:             str = ""
     type:             Literal["fixed", "variable", "sporadic"]
     amount:           float = 0.0
     min:              float = 0.0
