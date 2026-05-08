@@ -222,12 +222,15 @@ export default function DashboardPage() {
   const { isDark, theme: currentTheme, currencySymbol } = useContext(ThemeContext);
   const displayCurrency = currencySymbol || "£";
 
-  const [config, setConfig] = useState({
-    current_balance:        0,
-    monthly_income:         0,
-    monthly_rent:           0,
-    essential_spending:     0,
-    discretionary_spending: 0,
+  const [config, setConfig] = useState(() => {
+    const savedBalance = localStorage.getItem("unibudget_current_balance");
+    return {
+      current_balance:        savedBalance !== null ? Number(savedBalance) : 0,
+      monthly_income:         0,
+      monthly_rent:           0,
+      essential_spending:     0,
+      discretionary_spending: 0,
+    };
   });
 
   const [simData, setSimData]     = useState(null);
@@ -251,7 +254,7 @@ export default function DashboardPage() {
         monthly_rent:           agg.rent      > 0 ? agg.rent      : prev.monthly_rent,
         essential_spending:     agg.food      > 0 ? agg.food      : prev.essential_spending,
         discretionary_spending: agg.transport > 0 ? agg.transport : prev.discretionary_spending,
-        // current_balance is intentionally left to the user — not derived from transactions
+        // current_balance is not derived from transactions; it persists via localStorage separately
       }));
     };
 
@@ -262,6 +265,11 @@ export default function DashboardPage() {
     window.addEventListener("focus", syncFromBookkeeping);
     return () => window.removeEventListener("focus", syncFromBookkeeping);
   }, []);
+
+  // Persist current_balance to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("unibudget_current_balance", String(config.current_balance));
+  }, [config.current_balance]);
 
   // Re-run simulation 400ms after any config change
   // Tries backend /api/simulate first; falls back to mockSimulate if unavailable
