@@ -38,6 +38,7 @@ def simulate_budget(config: ScenarioConfig):
     Supports fixed, variable, and sporadic expense classifications.
     Returns P5 / P50 / P95 daily balance trajectories for fan chart rendering.
 
+
     Planned upgrade: offload to arq + Redis async task queue to eliminate
     main-thread blocking under high concurrency (Phase 2 enhancement).
     """

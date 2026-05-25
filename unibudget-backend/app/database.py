@@ -14,11 +14,16 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./unibudget_dev.db"
     print("WARNING: DATABASE_URL not set. Using local SQLite for development.")
+elif SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif SQLALCHEMY_DATABASE_URL.startswith("postgresql://") and "+asyncpg" not in SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+_is_postgres = SQLALCHEMY_DATABASE_URL.startswith("postgresql")
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     echo=False,
-    connect_args={"statement_cache_size": 0},
+    connect_args={"statement_cache_size": 0} if _is_postgres else {},
 )
 
 AsyncSessionLocal = async_sessionmaker(
